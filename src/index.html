@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Guess AI</title>
+  <style>
+    body { font-family: system-ui, Arial, sans-serif; margin: 20px; }
+    .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+    .answers { display: grid; grid-template-columns: repeat(2, minmax(200px, 1fr)); gap: 8px; margin-top: 10px; }
+    .answer { padding: 8px 10px; border: 1px solid #ddd; border-radius: 6px; background: #fafafa; }
+    .answer.revealed { background: #e9ffe9; border-color: #7ad07a; font-weight: bold; }
+    .players { margin: 10px 0; display: flex; gap: 16px; }
+    .current { text-decoration: underline; }
+    #log { margin-top: 12px; min-height: 24px; color: #333; }
+    #startForm input { width: 220px; }
+  </style>
+</head>
+<body>
+<h1>Guess AI</h1>
+<section id="start">
+  <div id="startForm" class="row">
+    <input id="topic" placeholder="Topic (e.g., Movies)" />
+    <input id="players" placeholder="Players (comma-separated)" />
+    <button id="startBtn">Start Game</button>
+  </div>
+</section>
+<section id="game" style="display:none">
+  <div class="row">
+    <div>Question <span id="qIndex">1</span>/10:</div>
+    <div id="question"></div>
+  </div>
+
+  <div class="answers" id="answers"></div>
+
+  <div class="players" id="playersList"></div>
+
+  <div class="row">
+    <input id="guess" placeholder="Your guess" />
+    <button id="guessBtn">Submit Guess</button>
+    <small>Tip: Press Space to go to next question.</small>
+  </div>
+
+  <div id="log"></div>
+</section>
+
+<script type="module">
+const el = (id) => document.getElementById(id);
+const startBtn = el('startBtn');
+const topic = el('topic');
+const playersInput = el('players');
+const guessInput = el('guess');
+const guessBtn = el('guessBtn');
+const answersDiv = el('answers');
+const playersList = el('playersList');
+const questionDiv = el('question');
+const qIndexSpan = el('qIndex');
+const logDiv = el('log');
+
+async function startGame() {
+  logDiv.textContent = 'Generating questions… this may take a few seconds.';
+  const players = playersInput.value.split(',').map(s => s.trim()).filter(Boolean);
+  const body = { topic: topic.value || 'General', players: players.length ? players : ['Player 1','Player 2'] };
+  await fetch('/start', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+  el('start').style.display = 'none';
+  el('game').style.display = '';
+  await refreshState();
+}
+
+async function refreshState() {
+  const res = await fetch('/state');
+  const state = await res.json();
+  if (!state || !state.question) return;
+  questionDiv.textContent = state.question;
+  qIndexSpan.textContent = (state.currentIndex + 1).toString();
+
+  // answers
+  answersDiv.innerHTML = '';
+  state.answers.forEach((a, idx) => {
+    const div = document.createElement('div');
+    div.className = 'answer' + (state.revealed[idx] ? ' revealed' : '');
+    div.textContent = state.revealed[idx] ? `${idx+1}. ${a}` : `${idx+1}. —`;
+    answersDiv.appendChild(div);
+  });
+
+  // players
+  playersList.innerHTML = '';
+  state.players.forEach((p, idx) => {
+    const span = document.createElement('span');
+    span.className = (idx === state.currentPlayerIndex) ? 'current' : '';
+    span.textContent = `${p.name}: ${p.score}`;
+    playersList.appendChild(span);
+  });
+
+  if (state.finished) {
+    const winner = [...state.players].sort((a,b)=>b.score-a.score)[0];
+    logDiv.textContent = `Game over! Winner: ${winner?.name} (${winner?.score} pts)`;
+    guessInput.disabled = true;
+    guessBtn.disabled = true;
+  } else {
+    logDiv.textContent = `Turn: ${state.currentPlayer}`;
+  }
+}
+
+async function submitGuess(v) {
+  const body = { guess: v ?? guessInput.value };
+  guessInput.value = '';
+  const res = await fetch('/guess', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+  const result = await res.json();
+  if (result.correct) {
+    logDiv.textContent = `Correct! +${result.points} for "${result.answer}"`;
+  } else {
+    logDiv.textContent = 'No match!';
+  }
+  await refreshState();
+}
+
+startBtn.addEventListener('click', startGame);
+
+guessBtn.addEventListener('click', () => submitGuess());
+
+guessInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') submitGuess();
+});
+
+// Press Space to go to next question
+window.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') {
+    e.preventDefault();
+    // Ask server to advance question via special guess token
+    submitGuess('__NEXT__');
+  }
+});
+
+</script>
+</body>
+</html>
