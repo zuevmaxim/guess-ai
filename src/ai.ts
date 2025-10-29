@@ -36,9 +36,10 @@ IMPORTANT RULES:
 1. ALL questions MUST be in RUSSIAN language. Never use English or any other language.
 2. All questions must be open-ended. Never create yes/no questions or questions that can be answered with a single word like "yes" or "no".
 3. Each question must ask for ONE SINGLE thing only - one object, one action, or one adjective. Never ask for multiple things in a single question.
-4. Good examples: "Назовите популярный фрукт", "Какое животное часто держат дома", "Какой цвет успокаивает"
-5. Bad examples: "Назовите фрукт или овощ", "Какие популярные домашние животные", "Какие цвета и формы вам нравятся"
-6. Questions should ask "Назовите...", "Какой...", "Какая...", "Какое...", or similar formats that require a single descriptive answer.
+4. Questions MUST be designed so that answers are only 1-2 words maximum. Avoid questions that require long phrases or sentences.
+5. Good examples: "Назовите популярный фрукт", "Какое животное часто держат дома", "Какой цвет успокаивает"
+6. Bad examples: "Назовите фрукт или овощ", "Какие популярные домашние животные", "Какие цвета и формы вам нравятся"
+7. Questions should ask "Назовите...", "Какой...", "Какая...", "Какое...", or similar formats that require a single descriptive answer.
 Return ONLY a JSON array of 10 strings IN RUSSIAN. No numbering, no extra text.`;
 
   const res = await openai.chat.completions.create({
@@ -55,7 +56,15 @@ Return ONLY a JSON array of 10 strings IN RUSSIAN. No numbering, no extra text.`
 
 export async function generateAnswers(question: string): Promise<string[]> {
   const sys = "You help create Family Feud–style popular answers. Output only JSON arrays. You MUST respond in Russian language only.";
-  const user = `For the survey question: ${question}\nReturn ONLY the 7 most popular, concise answers IN RUSSIAN LANGUAGE as a JSON array of 7 strings. ALL answers MUST be in RUSSIAN. No duplicates, no explanations.`;
+  const user = `For the survey question: ${question}
+Return ONLY the 7 most popular answers IN RUSSIAN LANGUAGE as a JSON array of 7 strings.
+CRITICAL RULES:
+1. ALL answers MUST be in RUSSIAN language only.
+2. Each answer MUST be exactly 1-2 words maximum. Never use more than 2 words.
+3. Use single nouns, adjectives, or very short phrases only.
+4. Good examples: "Яблоко", "Красный", "Большой дом"
+5. Bad examples: "Яблоко и груша", "Очень красивый цветок", "Поездка на море летом"
+6. No duplicates, no explanations, no extra text.`;
 
   const res = await openai.chat.completions.create({
     model: "gpt-4o-mini",
