@@ -18,6 +18,10 @@
     #progressBar { width: 100%; max-width: 500px; height: 30px; background: #f0f0f0; border: 1px solid #ccc; border-radius: 5px; overflow: hidden; }
     #progressFill { height: 100%; background: linear-gradient(90deg, #4CAF50, #45a049); transition: width 0.3s ease; width: 0%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; }
     #progressMessage { margin-top: 8px; color: #555; }
+    #incorrectSection { margin-top: 30px; padding: 15px; background: #fff3f3; border: 1px solid #ffcccc; border-radius: 8px; }
+    #incorrectSection h3 { margin-top: 0; color: #d32f2f; }
+    #incorrectList { display: flex; flex-wrap: wrap; gap: 8px; }
+    .incorrectItem { padding: 6px 12px; background: #ffe0e0; border: 1px solid #ffb3b3; border-radius: 4px; color: #c62828; font-size: 14px; }
   </style>
 </head>
 <body>
@@ -52,6 +56,11 @@
   </div>
 
   <div id="log"></div>
+
+  <div id="incorrectSection" style="display:none">
+    <h3>Неправильные ответы:</h3>
+    <div id="incorrectList"></div>
+  </div>
 </section>
 
 <script type="module">
@@ -69,6 +78,8 @@ const logDiv = el('log');
 const progressDiv = el('progress');
 const progressFill = el('progressFill');
 const progressMessage = el('progressMessage');
+const incorrectSection = el('incorrectSection');
+const incorrectList = el('incorrectList');
 
 async function pollProgress() {
   return new Promise((resolve, reject) => {
@@ -174,6 +185,20 @@ async function refreshState() {
     guessBtn.disabled = true;
   } else {
     logDiv.textContent = `Ход: ${state.currentPlayer}`;
+  }
+
+  // incorrect guesses
+  if (state.incorrectGuesses && state.incorrectGuesses.length > 0) {
+    incorrectSection.style.display = 'block';
+    incorrectList.innerHTML = '';
+    state.incorrectGuesses.forEach((guess) => {
+      const span = document.createElement('span');
+      span.className = 'incorrectItem';
+      span.textContent = guess;
+      incorrectList.appendChild(span);
+    });
+  } else {
+    incorrectSection.style.display = 'none';
   }
 }
 

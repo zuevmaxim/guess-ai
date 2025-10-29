@@ -6,6 +6,7 @@ export class Game {
   questions: Question[] = [];
   current = 0; // question index
   turn = 0; // player index
+  incorrectGuesses: string[] = []; // track all incorrect guesses
   private static progressCallback?: (progress: number, message: string) => void;
 
   protected constructor(players: string[]) {
@@ -67,6 +68,7 @@ export class Game {
   nextQuestion() {
     if (this.current < this.questions.length - 1) {
       this.current += 1;
+      this.incorrectGuesses = []; // Reset incorrect guesses for new question
     }
   }
 
@@ -113,6 +115,9 @@ export class Game {
       const points = this.pointsForRank(revealedIndex);
       this.players[this.turn].score += points;
       result = { correct: true, points, answer: q.answers[revealedIndex] };
+    } else {
+      // Record incorrect guess
+      this.incorrectGuesses.push(guess);
     }
 
     // rotate turn regardless

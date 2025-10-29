@@ -101,6 +101,7 @@ const server = http.createServer(async (req, res) => {
         currentPlayerIndex: game.turn,
         currentPlayer: game.players[game.turn]?.name ?? null,
         finished: game.isFinished(),
+        incorrectGuesses: game.incorrectGuesses,
       };
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify(state));
