@@ -81,6 +81,23 @@ const progressMessage = el('progressMessage');
 const incorrectSection = el('incorrectSection');
 const incorrectList = el('incorrectList');
 
+async function loadLastConfig() {
+  try {
+    const res = await fetch('/last-config');
+    const config = await res.json();
+    if (config && config.topic) {
+      topic.value = config.topic;
+      console.log('[UI] Prefilled topic:', config.topic);
+    }
+    if (config && config.players && config.players.length > 0) {
+      playersInput.value = config.players.join(', ');
+      console.log('[UI] Prefilled players:', config.players);
+    }
+  } catch (error) {
+    console.error('[UI] Error loading last config:', error);
+  }
+}
+
 async function pollProgress() {
   return new Promise((resolve, reject) => {
     const interval = setInterval(async () => {
@@ -231,6 +248,9 @@ window.addEventListener('keydown', (e) => {
     submitGuess('__NEXT__');
   }
 });
+
+// Load last game configuration on page load
+loadLastConfig();
 
 </script>
 </body>

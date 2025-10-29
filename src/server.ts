@@ -3,6 +3,7 @@ import { readFile } from "fs/promises";
 import { URL } from "url";
 import dotenv from "dotenv";
 import { Game } from "./game.js";
+import { saveLastGameConfig, readLastGameConfig } from "./cache.js";
 
 dotenv.config();
 
@@ -39,6 +40,9 @@ const server = http.createServer(async (req, res) => {
       const topic: string = body?.topic ?? "General";
       const players: string[] = Array.isArray(body?.players) ? body.players.filter((s: any) => typeof s === "string" && s.trim()) : ["Player 1", "Player 2"];
       console.log("[SERVER] Creating game with topic:", topic, "players:", players);
+      
+      // Save last game configuration
+      await saveLastGameConfig({ topic, players });
       
       // Reset progress
       gameProgress = { progress: 0, message: "Starting...", ready: false };
@@ -105,6 +109,13 @@ const server = http.createServer(async (req, res) => {
       };
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify(state));
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname === "/last-config") {
+      const lastConfig = await readLastGameConfig();
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(lastConfig || { topic: "", players: [] }));
       return;
     }
 

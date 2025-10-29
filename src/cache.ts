@@ -10,6 +10,11 @@ export interface CachedGameData {
   answersMap: Record<string, string[]>; // question -> answers
 }
 
+export interface LastGameConfig {
+  topic: string;
+  players: string[];
+}
+
 // Normalize topic to create a safe filename
 function normalizeTopic(topic: string): string {
   return topic
@@ -88,5 +93,38 @@ export async function dumpAIResponse(topic: string, type: "questions" | "answers
     console.log(`[CACHE] Dumped AI response to ${filePath}`);
   } catch (error) {
     console.error(`[CACHE] Error dumping AI response:`, error);
+  }
+}
+
+// Save last game configuration
+export async function saveLastGameConfig(config: LastGameConfig): Promise<void> {
+  try {
+    if (!existsSync(CACHE_DIR)) {
+      await mkdir(CACHE_DIR, { recursive: true });
+    }
+    
+    const filePath = join(CACHE_DIR, "last_game_config.json");
+    const content = JSON.stringify(config, null, 2);
+    await writeFile(filePath, content, "utf-8");
+    console.log(`[CACHE] Saved last game config: topic="${config.topic}", players=${config.players.length}`);
+  } catch (error) {
+    console.error(`[CACHE] Error saving last game config:`, error);
+  }
+}
+
+// Read last game configuration
+export async function readLastGameConfig(): Promise<LastGameConfig | null> {
+  try {
+    const filePath = join(CACHE_DIR, "last_game_config.json");
+    if (!existsSync(filePath)) {
+      return null;
+    }
+    const content = await readFile(filePath, "utf-8");
+    const config = JSON.parse(content) as LastGameConfig;
+    console.log(`[CACHE] Loaded last game config: topic="${config.topic}", players=${config.players.length}`);
+    return config;
+  } catch (error) {
+    console.error(`[CACHE] Error reading last game config:`, error);
+    return null;
   }
 }
