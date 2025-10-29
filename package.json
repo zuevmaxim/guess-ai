@@ -19,6 +19,7 @@
   },
   "scripts": {
     "start": "tsx src/server.ts",
+    "stop": "lsof -ti:3000 | xargs kill -9 || true",
     "build": "esbuild src/server.ts --bundle --platform=node --outfile=dist/server.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "TS_NODE_PROJECT=tsconfig.test.json node --loader ts-node/esm --test tests/**/*.test.ts"
