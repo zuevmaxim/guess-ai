@@ -50,11 +50,12 @@ Return ONLY a JSON array of 10 strings IN RUSSIAN. No numbering, no extra text.`
     ],
   });
   const text = res.choices[0]?.message?.content ?? "[]";
+  
   const list = mustArray(text, 10);
   return list.map((q) => q.trim());
 }
 
-export async function generateAnswers(question: string): Promise<string[]> {
+export async function generateAnswers(question: string, topic?: string): Promise<string[]> {
   const sys = "You help create Family Feud–style popular answers. Output only JSON arrays. You MUST respond in Russian language only.";
   const user = `For the survey question: ${question}
 Return ONLY the 7 most popular answers IN RUSSIAN LANGUAGE as a JSON array of 7 strings.

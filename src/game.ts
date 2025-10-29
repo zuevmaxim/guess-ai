@@ -1,5 +1,6 @@
 import { Player, Question } from "./types.js";
 import { compareGuess, generateAnswers, generateQuestions } from "./ai.js";
+import { readCache, writeCache, CachedGameData } from "./cache.js";
 
 export class Game {
   players: Player[] = [];
@@ -20,28 +21,67 @@ export class Game {
   static async create(topic: string, players: string[]): Promise<Game> {
     const game = new Game(players);
     
-    // Step 1: Generate questions (10% of total progress)
-    Game.progressCallback?.(5, "Generating questions...");
-    console.log("[GAME] Generating questions for topic:", topic);
-    const qs = await generateQuestions(topic);
-    console.log("[GAME] Generated", qs.length, "questions");
-    Game.progressCallback?.(10, `Generated ${qs.length} questions`);
+    // Check cache first
+    Game.progressCallback?.(5, "Checking cache...");
+    console.log("[GAME] Checking cache for topic:", topic);
+    const cached = await readCache(topic);
     
-    // Step 2: Generate answers in parallel (90% of total progress)
-    const totalQuestions = qs.length;
-    let completedQuestions = 0;
+    let qs: string[];
+    let answersMap: Record<string, string[]>;
     
-    const questionPromises = qs.map(async (q, i) => {
-      console.log(`[GAME] Starting answer generation for question ${i + 1}/${totalQuestions}: ${q}`);
-      const answers = await generateAnswers(q);
-      completedQuestions++;
-      const progress = 10 + Math.floor((completedQuestions / totalQuestions) * 90);
-      Game.progressCallback?.(progress, `Generated answers for ${completedQuestions}/${totalQuestions} questions`);
-      console.log(`[GAME] Generated ${answers.length} answers for question ${i + 1}/${totalQuestions}`);
-      return { text: q, answers, revealed: new Array(answers.length).fill(false) };
-    });
+    if (cached) {
+      // Load from cache
+      console.log("[GAME] Cache hit! Loading from cache");
+      Game.progressCallback?.(50, "Loading from cache...");
+      qs = cached.questions;
+      answersMap = cached.answersMap;
+      Game.progressCallback?.(90, "Loaded from cache");
+    } else {
+      // Generate new data
+      console.log("[GAME] Cache miss. Generating new data");
+      
+      // Step 1: Generate questions (10% of total progress)
+      Game.progressCallback?.(5, "Generating questions...");
+      console.log("[GAME] Generating questions for topic:", topic);
+      qs = await generateQuestions(topic);
+      console.log("[GAME] Generated", qs.length, "questions");
+      Game.progressCallback?.(10, `Generated ${qs.length} questions`);
+      
+      // Step 2: Generate answers in parallel (90% of total progress)
+      const totalQuestions = qs.length;
+      let completedQuestions = 0;
+      answersMap = {};
+      
+      const answerPromises = qs.map(async (q, i) => {
+        console.log(`[GAME] Starting answer generation for question ${i + 1}/${totalQuestions}: ${q}`);
+        const answers = await generateAnswers(q, topic);
+        completedQuestions++;
+        const progress = 10 + Math.floor((completedQuestions / totalQuestions) * 90);
+        Game.progressCallback?.(progress, `Generated answers for ${completedQuestions}/${totalQuestions} questions`);
+        console.log(`[GAME] Generated ${answers.length} answers for question ${i + 1}/${totalQuestions}`);
+        return { question: q, answers };
+      });
+      
+      const results = await Promise.all(answerPromises);
+      results.forEach(({ question, answers }) => {
+        answersMap[question] = answers;
+      });
+      
+      // Save to cache
+      const cacheData: CachedGameData = {
+        topic,
+        questions: qs,
+        answersMap,
+      };
+      await writeCache(cacheData);
+    }
     
-    const questions = await Promise.all(questionPromises);
+    // Build questions array
+    const questions: Question[] = qs.map((q) => ({
+      text: q,
+      answers: answersMap[q] || [],
+      revealed: new Array(7).fill(false),
+    }));
     
     game.questions = questions;
     game.current = 0;
