@@ -30,12 +30,19 @@ function mustArray(jsonText: string, expectedLength: number): string[] {
 }
 
 export async function generateQuestions(topic: string): Promise<string[]> {
-  const sys = "You are a helpful game generator. Output only valid JSON arrays, no prose.";
-  const user = `Create exactly 10 short, family-friendly survey questions for the topic "${topic}". 
-Return ONLY a JSON array of 10 strings. No numbering, no extra text.`;
+  const sys = "You are a helpful game generator. Output only valid JSON arrays, no prose. You MUST respond in Russian language only.";
+  const user = `Create exactly 10 short, family-friendly survey questions IN RUSSIAN LANGUAGE for the topic "${topic}". 
+IMPORTANT RULES:
+1. ALL questions MUST be in RUSSIAN language. Never use English or any other language.
+2. All questions must be open-ended. Never create yes/no questions or questions that can be answered with a single word like "yes" or "no".
+3. Each question must ask for ONE SINGLE thing only - one object, one action, or one adjective. Never ask for multiple things in a single question.
+4. Good examples: "Назовите популярный фрукт", "Какое животное часто держат дома", "Какой цвет успокаивает"
+5. Bad examples: "Назовите фрукт или овощ", "Какие популярные домашние животные", "Какие цвета и формы вам нравятся"
+6. Questions should ask "Назовите...", "Какой...", "Какая...", "Какое...", or similar formats that require a single descriptive answer.
+Return ONLY a JSON array of 10 strings IN RUSSIAN. No numbering, no extra text.`;
 
   const res = await openai.chat.completions.create({
-    model: "gpt-5",
+    model: "gpt-4o-mini",
     messages: [
       { role: "system", content: sys },
       { role: "user", content: user },
@@ -47,11 +54,11 @@ Return ONLY a JSON array of 10 strings. No numbering, no extra text.`;
 }
 
 export async function generateAnswers(question: string): Promise<string[]> {
-  const sys = "You help create Family Feud–style popular answers. Output only JSON arrays.";
-  const user = `For the survey question: ${question}\nReturn ONLY the 7 most popular, concise answers as a JSON array of 7 strings. No duplicates, no explanations.`;
+  const sys = "You help create Family Feud–style popular answers. Output only JSON arrays. You MUST respond in Russian language only.";
+  const user = `For the survey question: ${question}\nReturn ONLY the 7 most popular, concise answers IN RUSSIAN LANGUAGE as a JSON array of 7 strings. ALL answers MUST be in RUSSIAN. No duplicates, no explanations.`;
 
   const res = await openai.chat.completions.create({
-    model: "gpt-5",
+    model: "gpt-4o-mini",
     messages: [
       { role: "system", content: sys },
       { role: "user", content: user },
@@ -59,7 +66,12 @@ export async function generateAnswers(question: string): Promise<string[]> {
   });
   const text = res.choices[0]?.message?.content ?? "[]";
   const list = mustArray(text, 7);
-  return list.map((a) => a.trim());
+  const answers = list.map((a) => a.trim());
+  
+  // Log the generated answers
+  console.log(`[AI] Generated answers for "${question}":`, answers);
+  
+  return answers;
 }
 
 function cosineSim(a: number[], b: number[]): number {
