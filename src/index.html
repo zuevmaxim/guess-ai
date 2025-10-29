@@ -14,6 +14,8 @@
     .current { text-decoration: underline; }
     #log { margin-top: 12px; min-height: 24px; color: #333; }
     #startForm input { width: 220px; }
+    #playersContainer { display: flex; flex-direction: column; gap: 8px; }
+    #playersContainer input { width: 220px; }
     #progress { display: none; margin-top: 20px; }
     #progressBar { width: 100%; max-width: 500px; height: 30px; background: #f0f0f0; border: 1px solid #ccc; border-radius: 5px; overflow: hidden; }
     #progressFill { height: 100%; background: linear-gradient(90deg, #4CAF50, #45a049); transition: width 0.3s ease; width: 0%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; }
@@ -29,7 +31,7 @@
 <section id="start">
   <div id="startForm" class="row">
     <input id="topic" placeholder="Тема (например, Фильмы)" />
-    <input id="players" placeholder="Игроки (через запятую)" />
+    <div id="playersContainer"></div>
     <button id="startBtn">Начать игру</button>
   </div>
   <div id="progress">
@@ -52,7 +54,6 @@
   <div class="row">
     <input id="guess" placeholder="Ваш ответ" />
     <button id="guessBtn">Отправить</button>
-    <small>Подсказка: Нажмите Пробел для перехода к следующему вопросу.</small>
   </div>
 
   <div id="log"></div>
@@ -67,7 +68,7 @@
 const el = (id) => document.getElementById(id);
 const startBtn = el('startBtn');
 const topic = el('topic');
-const playersInput = el('players');
+const playersContainer = el('playersContainer');
 const guessInput = el('guess');
 const guessBtn = el('guessBtn');
 const answersDiv = el('answers');
@@ -81,6 +82,30 @@ const progressMessage = el('progressMessage');
 const incorrectSection = el('incorrectSection');
 const incorrectList = el('incorrectList');
 
+// Dynamic player input fields
+function createPlayerInput(value = '') {
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.placeholder = `Игрок ${playersContainer.children.length + 1}`;
+  input.value = value;
+  input.className = 'playerInput';
+  
+  input.addEventListener('input', () => {
+    // If this is the last input and user started typing, add a new empty field
+    const inputs = Array.from(playersContainer.querySelectorAll('.playerInput'));
+    const lastInput = inputs[inputs.length - 1];
+    if (input === lastInput && input.value.trim() !== '') {
+      createPlayerInput();
+    }
+  });
+  
+  playersContainer.appendChild(input);
+  return input;
+}
+
+// Initialize with one empty player input
+createPlayerInput();
+
 async function loadLastConfig() {
   try {
     const res = await fetch('/last-config');
@@ -90,7 +115,12 @@ async function loadLastConfig() {
       console.log('[UI] Prefilled topic:', config.topic);
     }
     if (config && config.players && config.players.length > 0) {
-      playersInput.value = config.players.join(', ');
+      // Clear existing inputs
+      playersContainer.innerHTML = '';
+      // Create input for each saved player
+      config.players.forEach(player => createPlayerInput(player));
+      // Add one empty field at the end
+      createPlayerInput();
       console.log('[UI] Prefilled players:', config.players);
     }
   } catch (error) {
@@ -132,7 +162,10 @@ async function startGame() {
   try {
     startBtn.disabled = true;
     topic.disabled = true;
-    playersInput.disabled = true;
+    
+    // Disable all player inputs
+    const playerInputs = playersContainer.querySelectorAll('.playerInput');
+    playerInputs.forEach(input => input.disabled = true);
     
     // Show progress bar
     progressDiv.style.display = 'block';
@@ -140,7 +173,10 @@ async function startGame() {
     progressFill.textContent = '0%';
     progressMessage.textContent = 'Начинаем...';
     
-    const players = playersInput.value.split(',').map(s => s.trim()).filter(Boolean);
+    // Collect players from all non-empty input fields
+    const players = Array.from(playerInputs)
+      .map(input => input.value.trim())
+      .filter(Boolean);
     const body = { topic: topic.value || 'Общее', players: players.length ? players : ['Игрок 1','Игрок 2'] };
     console.log('Starting game with:', body);
     
@@ -166,7 +202,10 @@ async function startGame() {
     progressMessage.style.color = 'red';
     startBtn.disabled = false;
     topic.disabled = false;
-    playersInput.disabled = false;
+    
+    // Re-enable all player inputs
+    const playerInputs = playersContainer.querySelectorAll('.playerInput');
+    playerInputs.forEach(input => input.disabled = false);
   }
 }
 
@@ -238,15 +277,6 @@ guessBtn.addEventListener('click', () => submitGuess());
 
 guessInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') submitGuess();
-});
-
-// Press Space to go to next question
-window.addEventListener('keydown', (e) => {
-  if (e.code === 'Space') {
-    e.preventDefault();
-    // Ask server to advance question via special guess token
-    submitGuess('__NEXT__');
-  }
 });
 
 // Load last game configuration on page load
