@@ -14,6 +14,10 @@
     .current { text-decoration: underline; }
     #log { margin-top: 12px; min-height: 24px; color: #333; }
     #startForm input { width: 220px; }
+    #progress { display: none; margin-top: 20px; }
+    #progressBar { width: 100%; max-width: 500px; height: 30px; background: #f0f0f0; border: 1px solid #ccc; border-radius: 5px; overflow: hidden; }
+    #progressFill { height: 100%; background: linear-gradient(90deg, #4CAF50, #45a049); transition: width 0.3s ease; width: 0%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; }
+    #progressMessage { margin-top: 8px; color: #555; }
   </style>
 </head>
 <body>
@@ -23,6 +27,12 @@
     <input id="topic" placeholder="Topic (e.g., Movies)" />
     <input id="players" placeholder="Players (comma-separated)" />
     <button id="startBtn">Start Game</button>
+  </div>
+  <div id="progress">
+    <div id="progressBar">
+      <div id="progressFill">0%</div>
+    </div>
+    <div id="progressMessage">Initializing...</div>
   </div>
 </section>
 <section id="game" style="display:none">
@@ -56,15 +66,80 @@ const playersList = el('playersList');
 const questionDiv = el('question');
 const qIndexSpan = el('qIndex');
 const logDiv = el('log');
+const progressDiv = el('progress');
+const progressFill = el('progressFill');
+const progressMessage = el('progressMessage');
+
+async function pollProgress() {
+  return new Promise((resolve, reject) => {
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch('/progress');
+        const progress = await res.json();
+        
+        // Update progress bar
+        progressFill.style.width = `${progress.progress}%`;
+        progressFill.textContent = `${progress.progress}%`;
+        progressMessage.textContent = progress.message;
+        
+        console.log(`Progress: ${progress.progress}% - ${progress.message}`);
+        
+        // Check if ready
+        if (progress.ready) {
+          clearInterval(interval);
+          resolve();
+        } else if (progress.progress === 0 && progress.message.startsWith('Error:')) {
+          clearInterval(interval);
+          reject(new Error(progress.message));
+        }
+      } catch (error) {
+        clearInterval(interval);
+        reject(error);
+      }
+    }, 500); // Poll every 500ms
+  });
+}
 
 async function startGame() {
-  logDiv.textContent = 'Generating questions… this may take a few seconds.';
-  const players = playersInput.value.split(',').map(s => s.trim()).filter(Boolean);
-  const body = { topic: topic.value || 'General', players: players.length ? players : ['Player 1','Player 2'] };
-  await fetch('/start', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
-  el('start').style.display = 'none';
-  el('game').style.display = '';
-  await refreshState();
+  try {
+    startBtn.disabled = true;
+    topic.disabled = true;
+    playersInput.disabled = true;
+    
+    // Show progress bar
+    progressDiv.style.display = 'block';
+    progressFill.style.width = '0%';
+    progressFill.textContent = '0%';
+    progressMessage.textContent = 'Starting...';
+    
+    const players = playersInput.value.split(',').map(s => s.trim()).filter(Boolean);
+    const body = { topic: topic.value || 'General', players: players.length ? players : ['Player 1','Player 2'] };
+    console.log('Starting game with:', body);
+    
+    // Start game creation
+    const response = await fetch('/start', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+    if (!response.ok) {
+      throw new Error(`Server error: ${response.status}`);
+    }
+    const result = await response.json();
+    console.log('Game start response:', result);
+    
+    // Poll for progress
+    await pollProgress();
+    
+    // Hide progress, show game
+    progressDiv.style.display = 'none';
+    el('start').style.display = 'none';
+    el('game').style.display = '';
+    await refreshState();
+  } catch (error) {
+    console.error('Error starting game:', error);
+    progressMessage.textContent = `Error: ${error.message}`;
+    progressMessage.style.color = 'red';
+    startBtn.disabled = false;
+    topic.disabled = false;
+    playersInput.disabled = false;
+  }
 }
 
 async function refreshState() {

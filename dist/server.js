@@ -13582,10 +13582,14 @@ var server = import_http.default.createServer(async (req, res) => {
       return;
     }
     if (req.method === "POST" && url.pathname === "/start") {
+      console.log("[SERVER] Received /start request");
       const body = await parseBody(req);
+      console.log("[SERVER] Request body:", body);
       const topic = body?.topic ?? "General";
       const players = Array.isArray(body?.players) ? body.players.filter((s2) => typeof s2 === "string" && s2.trim()) : ["Player 1", "Player 2"];
+      console.log("[SERVER] Creating game with topic:", topic, "players:", players);
       game = await Game.create(topic, players);
+      console.log("[SERVER] Game created successfully");
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ status: "ok" }));
       return;

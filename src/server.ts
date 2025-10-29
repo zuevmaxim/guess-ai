@@ -7,6 +7,7 @@ import { Game } from "./game.js";
 dotenv.config();
 
 let game: Game | null = null;
+let gameProgress = { progress: 0, message: "", ready: false };
 
 async function parseBody(req: http.IncomingMessage): Promise<any> {
   const chunks: Buffer[] = [];
@@ -32,12 +33,41 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === "POST" && url.pathname === "/start") {
+      console.log("[SERVER] Received /start request");
       const body = await parseBody(req);
+      console.log("[SERVER] Request body:", body);
       const topic: string = body?.topic ?? "General";
       const players: string[] = Array.isArray(body?.players) ? body.players.filter((s: any) => typeof s === "string" && s.trim()) : ["Player 1", "Player 2"];
-      game = await Game.create(topic, players);
+      console.log("[SERVER] Creating game with topic:", topic, "players:", players);
+      
+      // Reset progress
+      gameProgress = { progress: 0, message: "Starting...", ready: false };
+      
+      // Set up progress callback
+      Game.setProgressCallback((progress, message) => {
+        gameProgress = { progress, message, ready: false };
+        console.log(`[SERVER] Progress: ${progress}% - ${message}`);
+      });
+      
+      // Start game creation in background
+      Game.create(topic, players).then((g) => {
+        game = g;
+        gameProgress = { progress: 100, message: "Game ready!", ready: true };
+        console.log("[SERVER] Game created successfully");
+      }).catch((err) => {
+        console.error("[SERVER] Game creation failed:", err);
+        gameProgress = { progress: 0, message: `Error: ${err.message}`, ready: false };
+      });
+      
+      // Respond immediately
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ status: "ok" }));
+      res.end(JSON.stringify({ status: "started" }));
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname === "/progress") {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(gameProgress));
       return;
     }
 

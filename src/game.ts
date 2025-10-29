@@ -6,22 +6,47 @@ export class Game {
   questions: Question[] = [];
   current = 0; // question index
   turn = 0; // player index
+  private static progressCallback?: (progress: number, message: string) => void;
 
   protected constructor(players: string[]) {
     this.players = players.map((name) => ({ name, score: 0 }));
   }
 
+  static setProgressCallback(callback: (progress: number, message: string) => void) {
+    Game.progressCallback = callback;
+  }
+
   static async create(topic: string, players: string[]): Promise<Game> {
     const game = new Game(players);
+    
+    // Step 1: Generate questions (10% of total progress)
+    Game.progressCallback?.(5, "Generating questions...");
+    console.log("[GAME] Generating questions for topic:", topic);
     const qs = await generateQuestions(topic);
-    const questions: Question[] = [];
-    for (const q of qs) {
+    console.log("[GAME] Generated", qs.length, "questions");
+    Game.progressCallback?.(10, `Generated ${qs.length} questions`);
+    
+    // Step 2: Generate answers in parallel (90% of total progress)
+    const totalQuestions = qs.length;
+    let completedQuestions = 0;
+    
+    const questionPromises = qs.map(async (q, i) => {
+      console.log(`[GAME] Starting answer generation for question ${i + 1}/${totalQuestions}: ${q}`);
       const answers = await generateAnswers(q);
-      questions.push({ text: q, answers, revealed: new Array(answers.length).fill(false) });
-    }
+      completedQuestions++;
+      const progress = 10 + Math.floor((completedQuestions / totalQuestions) * 90);
+      Game.progressCallback?.(progress, `Generated answers for ${completedQuestions}/${totalQuestions} questions`);
+      console.log(`[GAME] Generated ${answers.length} answers for question ${i + 1}/${totalQuestions}`);
+      return { text: q, answers, revealed: new Array(answers.length).fill(false) };
+    });
+    
+    const questions = await Promise.all(questionPromises);
+    
     game.questions = questions;
     game.current = 0;
     game.turn = 0;
+    Game.progressCallback?.(100, "Game ready!");
+    console.log("[GAME] Game creation complete");
     return game;
   }
 
