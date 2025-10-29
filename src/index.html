@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="ru">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -24,20 +24,20 @@
 <h1>Guess AI</h1>
 <section id="start">
   <div id="startForm" class="row">
-    <input id="topic" placeholder="Topic (e.g., Movies)" />
-    <input id="players" placeholder="Players (comma-separated)" />
-    <button id="startBtn">Start Game</button>
+    <input id="topic" placeholder="Тема (например, Фильмы)" />
+    <input id="players" placeholder="Игроки (через запятую)" />
+    <button id="startBtn">Начать игру</button>
   </div>
   <div id="progress">
     <div id="progressBar">
       <div id="progressFill">0%</div>
     </div>
-    <div id="progressMessage">Initializing...</div>
+    <div id="progressMessage">Инициализация...</div>
   </div>
 </section>
 <section id="game" style="display:none">
   <div class="row">
-    <div>Question <span id="qIndex">1</span>/10:</div>
+    <div>Вопрос <span id="qIndex">1</span>/10:</div>
     <div id="question"></div>
   </div>
 
@@ -46,9 +46,9 @@
   <div class="players" id="playersList"></div>
 
   <div class="row">
-    <input id="guess" placeholder="Your guess" />
-    <button id="guessBtn">Submit Guess</button>
-    <small>Tip: Press Space to go to next question.</small>
+    <input id="guess" placeholder="Ваш ответ" />
+    <button id="guessBtn">Отправить</button>
+    <small>Подсказка: Нажмите Пробел для перехода к следующему вопросу.</small>
   </div>
 
   <div id="log"></div>
@@ -110,10 +110,10 @@ async function startGame() {
     progressDiv.style.display = 'block';
     progressFill.style.width = '0%';
     progressFill.textContent = '0%';
-    progressMessage.textContent = 'Starting...';
+    progressMessage.textContent = 'Начинаем...';
     
     const players = playersInput.value.split(',').map(s => s.trim()).filter(Boolean);
-    const body = { topic: topic.value || 'General', players: players.length ? players : ['Player 1','Player 2'] };
+    const body = { topic: topic.value || 'Общее', players: players.length ? players : ['Игрок 1','Игрок 2'] };
     console.log('Starting game with:', body);
     
     // Start game creation
@@ -134,7 +134,7 @@ async function startGame() {
     await refreshState();
   } catch (error) {
     console.error('Error starting game:', error);
-    progressMessage.textContent = `Error: ${error.message}`;
+    progressMessage.textContent = `Ошибка: ${error.message}`;
     progressMessage.style.color = 'red';
     startBtn.disabled = false;
     topic.disabled = false;
@@ -169,11 +169,11 @@ async function refreshState() {
 
   if (state.finished) {
     const winner = [...state.players].sort((a,b)=>b.score-a.score)[0];
-    logDiv.textContent = `Game over! Winner: ${winner?.name} (${winner?.score} pts)`;
+    logDiv.textContent = `Игра окончена! Победитель: ${winner?.name} (${winner?.score} очков)`;
     guessInput.disabled = true;
     guessBtn.disabled = true;
   } else {
-    logDiv.textContent = `Turn: ${state.currentPlayer}`;
+    logDiv.textContent = `Ход: ${state.currentPlayer}`;
   }
 }
 
@@ -183,9 +183,9 @@ async function submitGuess(v) {
   const res = await fetch('/guess', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
   const result = await res.json();
   if (result.correct) {
-    logDiv.textContent = `Correct! +${result.points} for "${result.answer}"`;
+    logDiv.textContent = `Правильно! +${result.points} за "${result.answer}"`;
   } else {
-    logDiv.textContent = 'No match!';
+    logDiv.textContent = 'Не угадали!';
   }
   await refreshState();
 }
