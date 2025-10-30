@@ -205,8 +205,11 @@
       border-color: #16a34a;
       color: white;
       font-weight: 700;
-      animation: pulse 0.5s ease;
       box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4);
+    }
+    
+    .answer.newly-revealed {
+      animation: pulse 0.5s ease;
     }
     
     .players {
@@ -474,6 +477,8 @@ const incorrectList = el('incorrectList');
 
 // Track when feedback message was set to ensure it stays visible for at least 2 seconds
 let feedbackMessageTime = 0;
+// Track the newly revealed answer to apply animation
+let newlyRevealedAnswer = null;
 
 // Dynamic player input fields
 function createPlayerInput(value = '') {
@@ -623,7 +628,15 @@ async function refreshState() {
   answersDiv.innerHTML = '';
   state.answers.forEach((a, idx) => {
     const div = document.createElement('div');
-    div.className = 'answer' + (state.revealed[idx] ? ' revealed' : '');
+    let className = 'answer';
+    if (state.revealed[idx]) {
+      className += ' revealed';
+      // Add newly-revealed class only to the answer that was just revealed
+      if (newlyRevealedAnswer === a) {
+        className += ' newly-revealed';
+      }
+    }
+    div.className = className;
     div.textContent = state.revealed[idx] ? `${idx+1}. ${a}` : `${idx+1}. —`;
     answersDiv.appendChild(div);
   });
@@ -670,6 +683,16 @@ async function submitGuess(v) {
   guessInput.value = '';
   const res = await fetch('/guess', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
   const result = await res.json();
+  
+  // Set the newly revealed answer for animation
+  if (result.correct && result.answer) {
+    newlyRevealedAnswer = result.answer;
+  }
+  
+  // Update the board immediately to show the correct answer
+  await refreshState();
+  
+  // Show feedback message
   if (result.correct) {
     logDiv.textContent = `Правильно! +${result.points} за "${result.answer}"`;
   } else {
@@ -678,8 +701,12 @@ async function submitGuess(v) {
   // Record when feedback message was shown
   feedbackMessageTime = Date.now();
   
-  // Wait at least 2 seconds before refreshing state (which may update logDiv)
+  // Wait at least 2 seconds before refreshing state (which will update current player)
   await new Promise(resolve => setTimeout(resolve, 2000));
+  
+  // Clear the newly revealed answer so animation doesn't repeat
+  newlyRevealedAnswer = null;
+  
   await refreshState();
 }
 
