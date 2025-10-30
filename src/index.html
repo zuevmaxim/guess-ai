@@ -5,29 +5,405 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Guess AI</title>
   <style>
-    body { font-family: system-ui, Arial, sans-serif; margin: 20px; }
-    .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
-    .answers { display: grid; grid-template-columns: repeat(2, minmax(200px, 1fr)); gap: 8px; margin-top: 10px; }
-    .answer { padding: 8px 10px; border: 1px solid #ddd; border-radius: 6px; background: #fafafa; }
-    .answer.revealed { background: #e9ffe9; border-color: #7ad07a; font-weight: bold; }
-    .players { margin: 10px 0; display: flex; gap: 16px; }
-    .current { text-decoration: underline; }
-    #log { margin-top: 12px; min-height: 24px; color: #333; }
-    #startForm input { width: 220px; }
-    #playersContainer { display: flex; flex-direction: column; gap: 8px; }
-    #playersContainer input { width: 220px; }
-    #progress { display: none; margin-top: 20px; }
-    #progressBar { width: 100%; max-width: 500px; height: 30px; background: #f0f0f0; border: 1px solid #ccc; border-radius: 5px; overflow: hidden; }
-    #progressFill { height: 100%; background: linear-gradient(90deg, #4CAF50, #45a049); transition: width 0.3s ease; width: 0%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; }
-    #progressMessage { margin-top: 8px; color: #555; }
-    #incorrectSection { margin-top: 30px; padding: 15px; background: #fff3f3; border: 1px solid #ffcccc; border-radius: 8px; }
-    #incorrectSection h3 { margin-top: 0; color: #d32f2f; }
-    #incorrectList { display: flex; flex-wrap: wrap; gap: 8px; }
-    .incorrectItem { padding: 6px 12px; background: #ffe0e0; border: 1px solid #ffb3b3; border-radius: 4px; color: #c62828; font-size: 14px; }
-    #start { position: relative; }
-    .modelSelector { position: absolute; top: 0; right: 0; display: flex; align-items: center; gap: 8px; }
-    .modelSelector label { font-size: 14px; color: #555; }
-    .modelSelector select { padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; background: white; font-size: 14px; cursor: pointer; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 40px 20px;
+      color: #333;
+    }
+    
+    h1 {
+      text-align: center;
+      color: white;
+      font-size: 3.5rem;
+      font-weight: 800;
+      margin-bottom: 40px;
+      text-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      letter-spacing: -1px;
+      animation: fadeInDown 0.6s ease-out;
+    }
+    
+    @keyframes fadeInDown {
+      from {
+        opacity: 0;
+        transform: translateY(-30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    
+    section {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      padding: 40px;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      animation: slideUp 0.6s ease-out;
+    }
+    
+    .row {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    
+    input[type="text"] {
+      padding: 18px 24px;
+      border: 2px solid #e0e0e0;
+      border-radius: 16px;
+      font-size: 18px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+      width: 100%;
+      min-width: 320px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+    
+    input[type="text"]:focus {
+      outline: none;
+      border-color: #667eea;
+      background: white;
+      box-shadow: 0 4px 20px rgba(102, 126, 234, 0.2), 0 0 0 4px rgba(102, 126, 234, 0.1);
+      transform: translateY(-2px);
+    }
+    
+    input[type="text"]:hover {
+      border-color: #b8c5f2;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    }
+    
+    input[type="text"]::placeholder {
+      color: #999;
+      font-weight: 400;
+    }
+    
+    button {
+      padding: 14px 32px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+    
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+    }
+    
+    button:active {
+      transform: translateY(0);
+    }
+    
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    #startForm {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      align-items: stretch;
+    }
+    
+    .formLabel {
+      font-size: 20px;
+      font-weight: 700;
+      color: #667eea;
+      margin-bottom: 8px;
+      margin-top: 12px;
+    }
+    
+    #playersContainer {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    #playersContainer input {
+      width: 100%;
+      max-width: 400px;
+    }
+    
+    .answers {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 16px;
+      margin: 30px 0;
+    }
+    
+    .answer {
+      padding: 20px;
+      border: 2px solid #e0e0e0;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      font-size: 18px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      cursor: default;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .answer::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+      transition: left 0.5s ease;
+    }
+    
+    .answer:hover::before {
+      left: 100%;
+    }
+    
+    .answer.revealed {
+      background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+      border-color: #16a34a;
+      color: white;
+      font-weight: 700;
+      animation: pulse 0.5s ease;
+      box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4);
+    }
+    
+    .players {
+      margin: 30px 0;
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    
+    .players span {
+      padding: 12px 24px;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .players .current {
+      background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+      color: white;
+      transform: scale(1.1);
+      box-shadow: 0 4px 15px rgba(251, 191, 36, 0.4);
+    }
+    
+    #question {
+      font-size: 24px;
+      font-weight: 700;
+      color: #667eea;
+      margin: 20px 0;
+      text-align: center;
+      line-height: 1.4;
+    }
+    
+    #qIndex {
+      font-weight: 700;
+      color: #764ba2;
+    }
+    
+    #log {
+      margin-top: 20px;
+      padding: 16px 24px;
+      min-height: 60px;
+      background: linear-gradient(135deg, #e0e7ff 0%, #ddd6fe 100%);
+      border-radius: 12px;
+      color: #4c1d95;
+      font-size: 18px;
+      font-weight: 600;
+      text-align: center;
+      animation: fadeIn 0.3s ease;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    #progress {
+      display: none;
+      margin-top: 30px;
+      animation: fadeIn 0.3s ease;
+    }
+    
+    #progressBar {
+      width: 100%;
+      max-width: 600px;
+      height: 40px;
+      background: #e9ecef;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+      margin: 0 auto;
+    }
+    
+    #progressFill {
+      height: 100%;
+      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+      transition: width 0.4s ease;
+      width: 0%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 700;
+      font-size: 16px;
+      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+    }
+    
+    #progressMessage {
+      margin-top: 12px;
+      color: #667eea;
+      font-weight: 600;
+      text-align: center;
+      font-size: 16px;
+    }
+    
+    #incorrectSection {
+      margin-top: 40px;
+      padding: 24px;
+      background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+      border: 2px solid #fca5a5;
+      border-radius: 16px;
+      animation: slideUp 0.3s ease;
+    }
+    
+    #incorrectSection h3 {
+      margin-bottom: 16px;
+      color: #dc2626;
+      font-size: 20px;
+      font-weight: 700;
+    }
+    
+    #incorrectList {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    
+    .incorrectItem {
+      padding: 10px 18px;
+      background: white;
+      border: 2px solid #f87171;
+      border-radius: 10px;
+      color: #dc2626;
+      font-size: 15px;
+      font-weight: 600;
+      box-shadow: 0 2px 6px rgba(220, 38, 38, 0.2);
+      animation: fadeIn 0.3s ease;
+    }
+    
+    #start {
+      position: relative;
+    }
+    
+    .modelSelector {
+      position: absolute;
+      top: -10px;
+      right: -10px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      padding: 12px 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    
+    .modelSelector label {
+      font-size: 14px;
+      font-weight: 600;
+      color: #667eea;
+    }
+    
+    .modelSelector select {
+      padding: 8px 14px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      background: white;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      color: #667eea;
+    }
+    
+    .modelSelector select:hover {
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    .modelSelector select:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+    }
+    
+    @media (max-width: 768px) {
+      h1 {
+        font-size: 2.5rem;
+      }
+      
+      section {
+        padding: 24px;
+      }
+      
+      .modelSelector {
+        position: static;
+        margin-bottom: 20px;
+        justify-content: center;
+      }
+      
+      .answers {
+        grid-template-columns: 1fr;
+      }
+      
+      input[type="text"] {
+        width: 100%;
+      }
+    }
   </style>
 </head>
 <body>
@@ -41,7 +417,9 @@
     </select>
   </div>
   <div id="startForm" class="row">
-    <input id="topic" placeholder="Тема (например, Фильмы)" />
+    <label class="formLabel">Тема игры</label>
+    <input type="text" id="topic" placeholder="Тема (например, Фильмы)" />
+    <label class="formLabel">Участники</label>
     <div id="playersContainer"></div>
     <button id="startBtn">Начать игру</button>
   </div>
@@ -63,7 +441,7 @@
   <div class="players" id="playersList"></div>
 
   <div class="row">
-    <input id="guess" placeholder="Ваш ответ" />
+    <input type="text" id="guess" placeholder="Ваш ответ" />
     <button id="guessBtn">Отправить</button>
   </div>
 
@@ -93,6 +471,9 @@ const progressFill = el('progressFill');
 const progressMessage = el('progressMessage');
 const incorrectSection = el('incorrectSection');
 const incorrectList = el('incorrectList');
+
+// Track when feedback message was set to ensure it stays visible for at least 2 seconds
+let feedbackMessageTime = 0;
 
 // Dynamic player input fields
 function createPlayerInput(value = '') {
@@ -262,7 +643,11 @@ async function refreshState() {
     guessInput.disabled = true;
     guessBtn.disabled = true;
   } else {
-    logDiv.textContent = `Ход: ${state.currentPlayer}`;
+    // Only update logDiv if at least 2 seconds have passed since feedback message was shown
+    const now = Date.now();
+    if (now - feedbackMessageTime >= 2000) {
+      logDiv.textContent = `Ход: ${state.currentPlayer}`;
+    }
   }
 
   // incorrect guesses
@@ -290,6 +675,11 @@ async function submitGuess(v) {
   } else {
     logDiv.textContent = 'Не угадали!';
   }
+  // Record when feedback message was shown
+  feedbackMessageTime = Date.now();
+  
+  // Wait at least 2 seconds before refreshing state (which may update logDiv)
+  await new Promise(resolve => setTimeout(resolve, 2000));
   await refreshState();
 }
 
