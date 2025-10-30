@@ -166,11 +166,6 @@ export class Game {
     // rotate turn regardless
     this.advanceTurn();
 
-    // auto-advance question if all answers revealed
-    if (this.allRevealed(this.current)) {
-      this.nextQuestion();
-    }
-
     return result;
   }
 }

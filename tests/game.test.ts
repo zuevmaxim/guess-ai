@@ -120,7 +120,7 @@ test("Game - already revealed answers are not matched again", async () => {
   assert.strictEqual(game.players[0].score, 0, "Should not award points for already revealed answer");
 });
 
-test("Game - auto-advance to next question when all answers revealed", async () => {
+test("Game - no auto-advance when all answers revealed (client controls advance)", async () => {
   const questions: Question[] = [
     {
       text: "Question 1",
@@ -140,7 +140,13 @@ test("Game - auto-advance to next question when all answers revealed", async () 
   // Reveal the last answer
   await game.handleGuess("A7");
 
-  assert.strictEqual(game.current, 1, "Should auto-advance to question 1 after all answers revealed");
+  // Should NOT auto-advance - stays at question 0 to allow intermission screen
+  assert.strictEqual(game.current, 0, "Should stay at question 0 after all answers revealed");
+  assert.strictEqual(game.currentQuestion?.text, "Question 1", "Should still be on question 1");
+  
+  // Client must explicitly advance using __NEXT__ token
+  await game.handleGuess("__NEXT__");
+  assert.strictEqual(game.current, 1, "Should advance to question 1 after __NEXT__ token");
   assert.strictEqual(game.currentQuestion?.text, "Question 2", "Should be on question 2");
 });
 
