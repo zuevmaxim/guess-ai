@@ -7,4 +7,5 @@ export interface Question {
   text: string;
   answers: string[]; // length 7
   revealed: boolean[]; // length 7, parallel to answers
+  givenUp: boolean[]; // length 7, tracks which answers were revealed via give up
 }

@@ -81,6 +81,7 @@ export class Game {
       text: q,
       answers: answersMap[q] || [],
       revealed: new Array(7).fill(false),
+      givenUp: new Array(7).fill(false),
     }));
     
     game.questions = questions;
@@ -137,7 +138,23 @@ export class Game {
     return q ? q.revealed.every(Boolean) : true;
   }
 
-  async handleGuess(rawGuess: string): Promise<{ correct: boolean; points?: number; answer?: string; similarity?: number }> {
+  private handleGiveUp(): { correct: boolean; giveUp: boolean } {
+    const q = this.currentQuestion;
+    if (!q) return { correct: false, giveUp: true };
+
+    // Reveal all remaining answers and mark them as given up
+    for (let i = 0; i < q.answers.length; i++) {
+      if (!q.revealed[i]) {
+        q.revealed[i] = true;
+        q.givenUp[i] = true;
+      }
+    }
+
+    console.log("[GAME] Give up - all remaining answers revealed");
+    return { correct: false, giveUp: true };
+  }
+
+  async handleGuess(rawGuess: string): Promise<{ correct: boolean; points?: number; answer?: string; similarity?: number; giveUp?: boolean }> {
     const guess = rawGuess.trim();
 
     // Special: allow client to request next question explicitly
@@ -145,6 +162,11 @@ export class Game {
       this.nextQuestion();
       this.advanceTurn();
       return { correct: false };
+    }
+
+    // Special: handle give up action
+    if (guess === "__GIVEUP__") {
+      return this.handleGiveUp();
     }
 
     const q = this.currentQuestion;

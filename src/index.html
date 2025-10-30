@@ -139,6 +139,24 @@
       transform: none;
     }
     
+    #giveUpBtn {
+      padding: 14px 40px;
+      margin-left: auto;
+    }
+    
+    #continueBtn {
+      margin: 0 auto;
+      display: block;
+    }
+    
+    .row:has(#guess) {
+      justify-content: center;
+    }
+    
+    .row:has(#giveUpBtn) {
+      margin-top: 30px;
+    }
+    
     #startForm {
       display: flex;
       flex-direction: column;
@@ -206,6 +224,14 @@
       color: white;
       font-weight: 700;
       box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4);
+    }
+    
+    .answer.given-up {
+      background: linear-gradient(135deg, #fb923c 0%, #f97316 100%);
+      border-color: #ea580c;
+      color: white;
+      font-weight: 700;
+      box-shadow: 0 4px 15px rgba(249, 115, 22, 0.4);
     }
     
     .answer.newly-revealed {
@@ -537,6 +563,11 @@
     <h3>Неправильные ответы:</h3>
     <div id="incorrectList"></div>
   </div>
+
+  <div class="row">
+    <button id="giveUpBtn">Сдаться</button>
+    <button id="continueBtn" style="display:none">Продолжить</button>
+  </div>
 </section>
 
 <section id="intermission" style="display:none">
@@ -555,6 +586,8 @@ const modelSelect = el('modelSelect');
 const playersContainer = el('playersContainer');
 const guessInput = el('guess');
 const guessBtn = el('guessBtn');
+const giveUpBtn = el('giveUpBtn');
+const continueBtn = el('continueBtn');
 const answersDiv = el('answers');
 const playersList = el('playersList');
 const questionDiv = el('question');
@@ -768,10 +801,15 @@ async function refreshState() {
     const div = document.createElement('div');
     let className = 'answer';
     if (state.revealed[idx]) {
-      className += ' revealed';
-      // Add newly-revealed class only to the answer that was just revealed
-      if (newlyRevealedAnswer === a) {
-        className += ' newly-revealed';
+      // Check if this answer was given up or guessed correctly
+      if (state.givenUp && state.givenUp[idx]) {
+        className += ' given-up';
+      } else {
+        className += ' revealed';
+        // Add newly-revealed class only to the answer that was just revealed
+        if (newlyRevealedAnswer === a) {
+          className += ' newly-revealed';
+        }
       }
     }
     div.className = className;
@@ -863,6 +901,29 @@ async function submitGuess(v) {
   }
 }
 
+async function handleGiveUp() {
+  // Send give up request
+  const res = await fetch('/guess', { 
+    method: 'POST', 
+    headers: {'Content-Type': 'application/json'}, 
+    body: JSON.stringify({ guess: '__GIVEUP__' })
+  });
+  const result = await res.json();
+  
+  // Update the board immediately to show all revealed answers
+  await refreshState();
+  
+  // Show feedback message
+  logDiv.textContent = 'Сдались! Все ответы открыты.';
+  feedbackMessageTime = Date.now();
+  
+  // Hide input controls and give up button, show continue button
+  guessInput.style.display = 'none';
+  guessBtn.style.display = 'none';
+  giveUpBtn.style.display = 'none';
+  continueBtn.style.display = '';
+}
+
 async function handleNextButton() {
   // Get current game state
   const res = await fetch('/state');
@@ -891,6 +952,12 @@ async function handleNextButton() {
     intermissionSection.style.display = 'none';
     el('game').style.display = '';
     
+    // Re-enable input controls and hide continue button
+    guessInput.style.display = '';
+    guessBtn.style.display = '';
+    giveUpBtn.style.display = '';
+    continueBtn.style.display = 'none';
+    
     // Refresh game state to show next question
     await refreshState();
   }
@@ -899,6 +966,14 @@ async function handleNextButton() {
 startBtn.addEventListener('click', startGame);
 
 guessBtn.addEventListener('click', () => submitGuess());
+
+giveUpBtn.addEventListener('click', handleGiveUp);
+
+continueBtn.addEventListener('click', async () => {
+  // Get current state and show intermission screen
+  const state = await fetch('/state').then(r => r.json());
+  showIntermission(state);
+});
 
 guessInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') submitGuess();

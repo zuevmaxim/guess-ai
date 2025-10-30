@@ -101,6 +101,7 @@ const server = http.createServer(async (req, res) => {
         question: q ? q.text : null,
         answers: q ? q.answers : [],
         revealed: q ? q.revealed : [],
+        givenUp: q ? q.givenUp : [],
         players: game.players,
         currentIndex: game.current,
         currentPlayerIndex: game.turn,
