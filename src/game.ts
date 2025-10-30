@@ -18,13 +18,13 @@ export class Game {
     Game.progressCallback = callback;
   }
 
-  static async create(topic: string, players: string[]): Promise<Game> {
+  static async create(topic: string, players: string[], model: string = "gpt-4o-mini"): Promise<Game> {
     const game = new Game(players);
     
     // Check cache first
     Game.progressCallback?.(5, "Checking cache...");
-    console.log("[GAME] Checking cache for topic:", topic);
-    const cached = await readCache(topic);
+    console.log("[GAME] Checking cache for topic:", topic, "model:", model);
+    const cached = await readCache(topic, model);
     
     let qs: string[];
     let answersMap: Record<string, string[]>;
@@ -42,8 +42,8 @@ export class Game {
       
       // Step 1: Generate questions (10% of total progress)
       Game.progressCallback?.(5, "Generating questions...");
-      console.log("[GAME] Generating questions for topic:", topic);
-      qs = await generateQuestions(topic);
+      console.log("[GAME] Generating questions for topic:", topic, "with model:", model);
+      qs = await generateQuestions(topic, model);
       console.log("[GAME] Generated", qs.length, "questions");
       Game.progressCallback?.(10, `Generated ${qs.length} questions`);
       
@@ -54,7 +54,7 @@ export class Game {
       
       const answerPromises = qs.map(async (q, i) => {
         console.log(`[GAME] Starting answer generation for question ${i + 1}/${totalQuestions}: ${q}`);
-        const answers = await generateAnswers(q, topic);
+        const answers = await generateAnswers(q, topic, model);
         completedQuestions++;
         const progress = 10 + Math.floor((completedQuestions / totalQuestions) * 90);
         Game.progressCallback?.(progress, `Generated answers for ${completedQuestions}/${totalQuestions} questions`);
@@ -73,7 +73,7 @@ export class Game {
         questions: qs,
         answersMap,
       };
-      await writeCache(cacheData);
+      await writeCache(cacheData, model);
     }
     
     // Build questions array

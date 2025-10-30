@@ -39,10 +39,11 @@ const server = http.createServer(async (req, res) => {
       console.log("[SERVER] Request body:", body);
       const topic: string = body?.topic ?? "General";
       const players: string[] = Array.isArray(body?.players) ? body.players.filter((s: any) => typeof s === "string" && s.trim()) : ["Player 1", "Player 2"];
-      console.log("[SERVER] Creating game with topic:", topic, "players:", players);
+      const model: string = body?.model ?? "gpt-4o-mini";
+      console.log("[SERVER] Creating game with topic:", topic, "players:", players, "model:", model);
       
       // Save last game configuration
-      await saveLastGameConfig({ topic, players });
+      await saveLastGameConfig({ topic, players, model });
       
       // Reset progress
       gameProgress = { progress: 0, message: "Starting...", ready: false };
@@ -54,7 +55,7 @@ const server = http.createServer(async (req, res) => {
       });
       
       // Start game creation in background
-      Game.create(topic, players).then((g) => {
+      Game.create(topic, players, model).then((g) => {
         game = g;
         gameProgress = { progress: 100, message: "Game ready!", ready: true };
         console.log("[SERVER] Game created successfully");

@@ -24,11 +24,22 @@
     #incorrectSection h3 { margin-top: 0; color: #d32f2f; }
     #incorrectList { display: flex; flex-wrap: wrap; gap: 8px; }
     .incorrectItem { padding: 6px 12px; background: #ffe0e0; border: 1px solid #ffb3b3; border-radius: 4px; color: #c62828; font-size: 14px; }
+    #start { position: relative; }
+    .modelSelector { position: absolute; top: 0; right: 0; display: flex; align-items: center; gap: 8px; }
+    .modelSelector label { font-size: 14px; color: #555; }
+    .modelSelector select { padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; background: white; font-size: 14px; cursor: pointer; }
   </style>
 </head>
 <body>
 <h1>Guess AI</h1>
 <section id="start">
+  <div class="modelSelector">
+    <label for="modelSelect">Модель:</label>
+    <select id="modelSelect">
+      <option value="gpt-4o-mini">gpt-4o-mini</option>
+      <option value="gpt-5">gpt-5</option>
+    </select>
+  </div>
   <div id="startForm" class="row">
     <input id="topic" placeholder="Тема (например, Фильмы)" />
     <div id="playersContainer"></div>
@@ -68,6 +79,7 @@
 const el = (id) => document.getElementById(id);
 const startBtn = el('startBtn');
 const topic = el('topic');
+const modelSelect = el('modelSelect');
 const playersContainer = el('playersContainer');
 const guessInput = el('guess');
 const guessBtn = el('guessBtn');
@@ -113,6 +125,10 @@ async function loadLastConfig() {
     if (config && config.topic) {
       topic.value = config.topic;
       console.log('[UI] Prefilled topic:', config.topic);
+    }
+    if (config && config.model) {
+      modelSelect.value = config.model;
+      console.log('[UI] Prefilled model:', config.model);
     }
     if (config && config.players && config.players.length > 0) {
       // Clear existing inputs
@@ -162,6 +178,7 @@ async function startGame() {
   try {
     startBtn.disabled = true;
     topic.disabled = true;
+    modelSelect.disabled = true;
     
     // Disable all player inputs
     const playerInputs = playersContainer.querySelectorAll('.playerInput');
@@ -177,7 +194,11 @@ async function startGame() {
     const players = Array.from(playerInputs)
       .map(input => input.value.trim())
       .filter(Boolean);
-    const body = { topic: topic.value || 'Общее', players: players.length ? players : ['Игрок 1','Игрок 2'] };
+    const body = { 
+      topic: topic.value || 'Общее', 
+      players: players.length ? players : ['Игрок 1','Игрок 2'],
+      model: modelSelect.value
+    };
     console.log('Starting game with:', body);
     
     // Start game creation
@@ -202,6 +223,7 @@ async function startGame() {
     progressMessage.style.color = 'red';
     startBtn.disabled = false;
     topic.disabled = false;
+    modelSelect.disabled = false;
     
     // Re-enable all player inputs
     const playerInputs = playersContainer.querySelectorAll('.playerInput');

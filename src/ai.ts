@@ -29,7 +29,7 @@ function mustArray(jsonText: string, expectedLength: number): string[] {
   throw new Error("Model did not return a valid JSON array of strings");
 }
 
-export async function generateQuestions(topic: string): Promise<string[]> {
+export async function generateQuestions(topic: string, model: string = "gpt-4o-mini"): Promise<string[]> {
   const sys = "You are a helpful game generator. Output only valid JSON arrays, no prose. You MUST respond in Russian language only.";
   const user = `Create exactly 10 short, family-friendly survey questions IN RUSSIAN LANGUAGE for the topic "${topic}". 
 IMPORTANT RULES:
@@ -43,7 +43,7 @@ IMPORTANT RULES:
 Return ONLY a JSON array of 10 strings IN RUSSIAN. No numbering, no extra text.`;
 
   const res = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
+    model: model,
     messages: [
       { role: "system", content: sys },
       { role: "user", content: user },
@@ -55,7 +55,7 @@ Return ONLY a JSON array of 10 strings IN RUSSIAN. No numbering, no extra text.`
   return list.map((q) => q.trim());
 }
 
-export async function generateAnswers(question: string, topic?: string): Promise<string[]> {
+export async function generateAnswers(question: string, topic?: string, model: string = "gpt-4o-mini"): Promise<string[]> {
   const sys = "You help create Family Feud–style popular answers. Output only JSON arrays. You MUST respond in Russian language only.";
   const user = `For the survey question: ${question}
 Return ONLY the 7 most popular answers IN RUSSIAN LANGUAGE as a JSON array of 7 strings.
@@ -68,7 +68,7 @@ CRITICAL RULES:
 6. No duplicates, no explanations, no extra text.`;
 
   const res = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
+    model: model,
     messages: [
       { role: "system", content: sys },
       { role: "user", content: user },

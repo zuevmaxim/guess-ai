@@ -9,7 +9,7 @@ let serverProcess: ChildProcess | null = null;
 before(async () => {
   console.log("[TEST] Starting server on port 3001...");
   serverProcess = spawn("tsx", ["src/server.ts"], {
-    env: { ...process.env, PORT: "3001" },
+    env: { ...process.env, PORT: "3001", CACHE_DIR: "cache-test" },
     stdio: "ignore", // Suppress server output during tests
   });
 
@@ -115,7 +115,7 @@ test("Server - GET /nonexistent returns 404", async () => {
 
 test("Server - POST /start initializes game and saves config", async () => {
   const res = await request("POST", "/start", {
-    topic: "Тестовая тема",
+    topic: "Новый год",
     players: ["Игрок1", "Игрок2"],
   });
 
@@ -129,7 +129,7 @@ test("Server - POST /start initializes game and saves config", async () => {
   // Verify last config was saved
   const configRes = await request("GET", "/last-config");
   const config = parseJSON(configRes.body);
-  assert.strictEqual(config?.topic, "Тестовая тема", "Should save topic");
+  assert.strictEqual(config?.topic, "Новый год", "Should save topic");
   assert.deepStrictEqual(
     config?.players,
     ["Игрок1", "Игрок2"],
@@ -160,7 +160,7 @@ test("Server - POST /start with missing fields uses defaults", async () => {
 test("Server - GET /progress returns progress during game creation", async () => {
   // Start a game
   await request("POST", "/start", {
-    topic: "Прогресс тест",
+    topic: "Новый год",
     players: ["Тестер"],
   });
 
@@ -211,7 +211,7 @@ test("Server - POST /guess without active game returns error", async () => {
 test("Server - Full game flow: start, wait, state, guess", async () => {
   // Start a new game
   const startRes = await request("POST", "/start", {
-    topic: "Интеграционный тест",
+    topic: "Новый год",
     players: ["Тестер1", "Тестер2"],
   });
   assert.strictEqual(startRes.status, 200, "Start should return 200");
@@ -265,7 +265,7 @@ test("Server - GET /last-config returns empty when no config exists", async () =
 test("Server - POST /guess with special __NEXT__ token advances question", async () => {
   // Start a game first
   await request("POST", "/start", {
-    topic: "Следующий вопрос тест",
+    topic: "Новый год",
     players: ["Тестер"],
   });
   await waitForGameReady();
@@ -294,7 +294,7 @@ test("Server - POST /guess with special __NEXT__ token advances question", async
 
 test("Server - POST /start filters out empty player names", async () => {
   const res = await request("POST", "/start", {
-    topic: "Фильтр игроков",
+    topic: "Новый год",
     players: ["Игрок1", "", "  ", "Игрок2"],
   });
 
@@ -313,7 +313,7 @@ test("Server - POST /start filters out empty player names", async () => {
 test("Server - GET /state includes incorrectGuesses field", async () => {
   // Start a game
   await request("POST", "/start", {
-    topic: "Неправильные ответы тест",
+    topic: "Новый год",
     players: ["Тестер"],
   });
   await waitForGameReady();
