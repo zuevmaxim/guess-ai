@@ -97,9 +97,13 @@ function cosineSim(a: number[], b: number[]): number {
   return dot / (Math.sqrt(na) * Math.sqrt(nb));
 }
 
-export async function compareGuess(guess: string, answers: string[]): Promise<number | null> {
+export async function compareGuess(guess: string, answers: string[]): Promise<{ matchIndex: number | null; similarity: number }> {
+  // Convert to lowercase before building embeddings
+  const guessLower = guess.toLowerCase();
+  const answersLower = answers.map(a => a.toLowerCase());
+  
   // Compute embeddings for guess and answers
-  const inputs = [guess, ...answers];
+  const inputs = [guessLower, ...answersLower];
   const emb = await openai.embeddings.create({
     model: "text-embedding-3-large",
     input: inputs,
@@ -116,6 +120,6 @@ export async function compareGuess(guess: string, answers: string[]): Promise<nu
     }
   }
   // Threshold similarity > 0.8 ⇒ match
-  if (best > 0.8) return bestIdx;
-  return null;
+  const matchIndex = best > 0.8 ? bestIdx : null;
+  return { matchIndex, similarity: best };
 }

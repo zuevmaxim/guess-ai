@@ -121,7 +121,7 @@ export class Game {
     return q ? q.revealed.every(Boolean) : true;
   }
 
-  async handleGuess(rawGuess: string): Promise<{ correct: boolean; points?: number; answer?: string }> {
+  async handleGuess(rawGuess: string): Promise<{ correct: boolean; points?: number; answer?: string; similarity?: number }> {
     const guess = rawGuess.trim();
 
     // Special: allow client to request next question explicitly
@@ -145,16 +145,19 @@ export class Game {
       return { correct: false };
     }
 
-    const matchIndexInRemaining = await compareGuess(guess, candidateAnswers);
+    const { matchIndex: matchIndexInRemaining, similarity } = await compareGuess(guess, candidateAnswers);
 
-    let result: { correct: boolean; points?: number; answer?: string } = { correct: false };
+    // Log cosine similarity to server logs
+    console.log(`[GAME] Guess: "${guess}" | Cosine similarity: ${similarity.toFixed(3)}`);
+
+    let result: { correct: boolean; points?: number; answer?: string; similarity?: number } = { correct: false, similarity };
 
     if (matchIndexInRemaining !== null) {
       const revealedIndex = remainingAnswers[matchIndexInRemaining].i; // index in full list
       q.revealed[revealedIndex] = true;
       const points = this.pointsForRank(revealedIndex);
       this.players[this.turn].score += points;
-      result = { correct: true, points, answer: q.answers[revealedIndex] };
+      result = { correct: true, points, answer: q.answers[revealedIndex], similarity };
     } else {
       // Record incorrect guess
       this.incorrectGuesses.push(guess);
