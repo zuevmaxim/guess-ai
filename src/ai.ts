@@ -30,17 +30,22 @@ function mustArray(jsonText: string, expectedLength: number): string[] {
 }
 
 export async function generateQuestions(topic: string, model: string = "gpt-4o-mini"): Promise<string[]> {
-  const sys = "You are a helpful game generator. Output only valid JSON arrays, no prose. You MUST respond in Russian language only.";
-  const user = `Create exactly 10 short, family-friendly survey questions IN RUSSIAN LANGUAGE for the topic "${topic}". 
-IMPORTANT RULES:
-1. ALL questions MUST be in RUSSIAN language. Never use English or any other language.
-2. All questions must be open-ended. Never create yes/no questions or questions that can be answered with a single word like "yes" or "no".
-3. Each question must ask for ONE SINGLE thing only - one object, one action, or one adjective. Never ask for multiple things in a single question.
-4. Questions MUST be designed so that answers are only 1-2 words maximum. Avoid questions that require long phrases or sentences.
-5. Good examples: "Назовите популярный фрукт", "Какое животное часто держат дома", "Какой цвет успокаивает"
-6. Bad examples: "Назовите фрукт или овощ", "Какие популярные домашние животные", "Какие цвета и формы вам нравятся"
-7. Questions should ask "Назовите...", "Какой...", "Какая...", "Какое...", or similar formats that require a single descriptive answer.
-Return ONLY a JSON array of 10 strings IN RUSSIAN. No numbering, no extra text.`;
+  const sys = "Ты полезный генератор игр. Выводи только валидные JSON массивы, без дополнительного текста. Ты ДОЛЖЕН отвечать ТОЛЬКО на русском языке.";
+  const user = `Создай ровно 10 коротких, семейных вопросов-опросов на русском языке для темы "${topic}". 
+Это для игры в стиле "Сто к одному", где игроки угадывают самые популярные ответы.
+
+ВАЖНЫЕ ПРАВИЛА:
+1. ВСЕ вопросы ДОЛЖНЫ быть на русском языке. Никогда не используй английский или другие языки.
+2. Вопросы должны быть ИНТЕРЕСНЫМИ и УВЛЕКАТЕЛЬНЫМИ - избегай скучных или слишком очевидных вопросов.
+3. Каждый вопрос должен иметь МНОГО ВОЗМОЖНЫХ ОТВЕТОВ (минимум 10-20 валидных вариантов), но ТОП-7 самых популярных ответов должны быть ПОНЯТНЫМИ и ОЧЕВИДНЫМИ для большинства людей.
+4. Вопросы должны быть о УНИВЕРСАЛЬНЫХ темах, с которыми все могут себя ассоциировать - общий опыт, известные вещи, популярная культура, повседневная жизнь.
+5. Каждый вопрос должен спрашивать только ОБ ОДНОЙ вещи - один объект, одно действие или одно прилагательное. Никогда не спрашивай о нескольких вещах.
+6. Ответы должны быть максимум 1-2 слова. Избегай вопросов, требующих длинных фраз.
+7. Вопросы должны быть ЛОГИЧНЫМИ - самые популярные ответы должны иметь смысл и быть предсказуемыми на основе общих знаний и опыта.
+8. Хорошие примеры: "Назовите популярный фрукт" (много фруктов существует, но яблоко/банан очевидно самые популярные), "Что люди обычно едят на завтрак" (много вариантов, но есть очевидно популярные), "Какой подарок чаще всего дарят на день рождения"
+9. Плохие примеры: "Назовите редкий фрукт" (слишком специфично, мало валидных ответов), "Что вы ели вчера" (слишком личное, нет четкого популярного ответа), "Назовите фрукт или овощ" (спрашивает о нескольких вещах)
+10. Вопросы должны начинаться с "Назовите...", "Что люди обычно...", "Какой...", "Какая...", "Какое...", или подобных форматов.
+Верни ТОЛЬКО JSON массив из 10 строк на русском языке. Без нумерации, без дополнительного текста.`;
 
   const res = await openai.chat.completions.create({
     model: model,
@@ -56,16 +61,22 @@ Return ONLY a JSON array of 10 strings IN RUSSIAN. No numbering, no extra text.`
 }
 
 export async function generateAnswers(question: string, topic?: string, model: string = "gpt-4o-mini"): Promise<string[]> {
-  const sys = "You help create Family Feud–style popular answers. Output only JSON arrays. You MUST respond in Russian language only.";
-  const user = `For the survey question: ${question}
-Return ONLY the 7 most popular answers IN RUSSIAN LANGUAGE as a JSON array of 7 strings.
-CRITICAL RULES:
-1. ALL answers MUST be in RUSSIAN language only.
-2. Each answer MUST be exactly 1-2 words maximum. Never use more than 2 words.
-3. Use single nouns, adjectives, or very short phrases only.
-4. Good examples: "Яблоко", "Красный", "Большой дом"
-5. Bad examples: "Яблоко и груша", "Очень красивый цветок", "Поездка на море летом"
-6. No duplicates, no explanations, no extra text.`;
+  const sys = "Ты помогаешь создавать популярные ответы в стиле игры 'Сто к одному'. Выводи только JSON массивы. Ты ДОЛЖЕН отвечать ТОЛЬКО на русском языке.";
+  const user = `Для вопроса-опроса: ${question}
+Верни ТОЛЬКО 7 САМЫХ ПОПУЛЯРНЫХ ответов на русском языке в виде JSON массива из 7 строк, отсортированных от самого популярного (#1) до менее популярного (#7).
+
+КРИТИЧЕСКИ ВАЖНЫЕ ПРАВИЛА:
+1. ВСЕ ответы ДОЛЖНЫ быть только на русском языке.
+2. Ответы должны быть САМЫМИ ОЧЕВИДНЫМИ и МАССОВЫМИ вариантами, о которых большинство людей подумает в первую очередь.
+3. Думай, как будто ты опросил 100 случайных людей - какими были бы ТОП-7 самых частых ответов?
+4. Ответы должны быть ЛОГИЧНЫМИ и ПРЕДСКАЗУЕМЫМИ - вещи, которые имеют смысл на основе общих знаний, повседневного опыта и популярной культуры.
+5. Приоритизируй ИЗВЕСТНЫЕ, ПОПУЛЯРНЫЕ варианты над малоизвестными, нишевыми или необычными.
+6. Каждый ответ ДОЛЖЕН быть ровно 1-2 слова максимум. Никогда не используй больше 2 слов.
+7. Используй только единичные существительные, прилагательные или очень короткие фразы.
+8. Хорошие примеры: "Яблоко" (очень популярный фрукт), "Красный" (самый распространенный цвет), "Собака" (самый популярный питомец)
+9. Плохие примеры: "Карамбола" (слишком экзотично/малоизвестно), "Яблоко и груша" (несколько предметов), "Очень красивый цветок" (слишком длинно)
+10. Ранжируй ответы по НАСТОЯЩЕЙ ПОПУЛЯРНОСТИ - #1 должен быть абсолютно самым частым ответом, #7 должен быть все еще популярным, но менее.
+11. Без дубликатов, без объяснений, без дополнительного текста.`;
 
   const res = await openai.chat.completions.create({
     model: model,
