@@ -85,7 +85,15 @@ export class Game {
     
     game.questions = questions;
     game.current = 0;
-    game.turn = 0;
+    
+    // Start with a random player for the first question
+    // In tests, use deterministic behavior (always start with player 0)
+    if (process.env.CACHE_DIR === 'cache-test') {
+      game.turn = 0;
+    } else {
+      game.turn = Math.floor(Math.random() * game.players.length);
+    }
+    
     Game.progressCallback?.(100, "Game ready!");
     console.log("[GAME] Game creation complete");
     return game;
@@ -109,6 +117,14 @@ export class Game {
     if (this.current < this.questions.length - 1) {
       this.current += 1;
       this.incorrectGuesses = []; // Reset incorrect guesses for new question
+      
+      // Start with a random player for the new question
+      // In tests, use deterministic behavior (always start with player 0)
+      if (process.env.CACHE_DIR === 'cache-test') {
+        this.turn = 0;
+      } else {
+        this.turn = Math.floor(Math.random() * this.players.length);
+      }
     }
   }
 
