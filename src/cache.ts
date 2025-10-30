@@ -16,6 +16,22 @@ export interface LastGameConfig {
   model: string;
 }
 
+export interface GameState {
+  topic: string;
+  model: string;
+  cacheFilePath: string; // Path to the cached questions file
+  players: Array<{ name: string; score: number }>;
+  currentQuestionIndex: number;
+  currentPlayerIndex: number;
+  questions: Array<{
+    text: string;
+    answers: string[];
+    revealed: boolean[];
+    givenUp: boolean[];
+  }>;
+  incorrectGuesses: string[];
+}
+
 // Normalize topic to create a safe filename
 function normalizeTopic(topic: string): string {
   return topic
@@ -127,5 +143,52 @@ export async function readLastGameConfig(): Promise<LastGameConfig | null> {
   } catch (error) {
     console.error(`[CACHE] Error reading last game config:`, error);
     return null;
+  }
+}
+
+// Save current game state
+export async function saveGameState(state: GameState): Promise<void> {
+  try {
+    if (!existsSync(CACHE_DIR)) {
+      await mkdir(CACHE_DIR, { recursive: true });
+    }
+    
+    const filePath = join(CACHE_DIR, "current_game_state.json");
+    const content = JSON.stringify(state, null, 2);
+    await writeFile(filePath, content, "utf-8");
+    console.log(`[CACHE] Saved game state: question ${state.currentQuestionIndex + 1}, player ${state.currentPlayerIndex}`);
+  } catch (error) {
+    console.error(`[CACHE] Error saving game state:`, error);
+  }
+}
+
+// Read saved game state
+export async function readGameState(): Promise<GameState | null> {
+  try {
+    const filePath = join(CACHE_DIR, "current_game_state.json");
+    if (!existsSync(filePath)) {
+      return null;
+    }
+    const content = await readFile(filePath, "utf-8");
+    const state = JSON.parse(content) as GameState;
+    console.log(`[CACHE] Loaded game state: question ${state.currentQuestionIndex + 1}, player ${state.currentPlayerIndex}`);
+    return state;
+  } catch (error) {
+    console.error(`[CACHE] Error reading game state:`, error);
+    return null;
+  }
+}
+
+// Clear saved game state
+export async function clearGameState(): Promise<void> {
+  try {
+    const filePath = join(CACHE_DIR, "current_game_state.json");
+    if (existsSync(filePath)) {
+      const { unlink } = await import("fs/promises");
+      await unlink(filePath);
+      console.log(`[CACHE] Cleared game state`);
+    }
+  } catch (error) {
+    console.error(`[CACHE] Error clearing game state:`, error);
   }
 }

@@ -1,6 +1,6 @@
 import { Player, Question } from "./types.js";
 import { compareGuess, generateAnswers, generateQuestions } from "./ai.js";
-import { readCache, writeCache, CachedGameData } from "./cache.js";
+import { readCache, writeCache, CachedGameData, GameState } from "./cache.js";
 
 export class Game {
   players: Player[] = [];
@@ -97,6 +97,51 @@ export class Game {
     
     Game.progressCallback?.(100, "Game ready!");
     console.log("[GAME] Game creation complete");
+    return game;
+  }
+
+  // Export current game state for caching
+  exportState(topic: string, model: string, cacheFilePath: string): GameState {
+    return {
+      topic,
+      model,
+      cacheFilePath,
+      players: this.players.map(p => ({ name: p.name, score: p.score })),
+      currentQuestionIndex: this.current,
+      currentPlayerIndex: this.turn,
+      questions: this.questions.map(q => ({
+        text: q.text,
+        answers: [...q.answers],
+        revealed: [...q.revealed],
+        givenUp: [...q.givenUp],
+      })),
+      incorrectGuesses: [...this.incorrectGuesses],
+    };
+  }
+
+  // Restore game from saved state
+  static restoreFromState(state: GameState): Game {
+    const game = new Game(state.players.map(p => p.name));
+    
+    // Restore player scores
+    state.players.forEach((p, i) => {
+      game.players[i].score = p.score;
+    });
+    
+    // Restore questions
+    game.questions = state.questions.map(q => ({
+      text: q.text,
+      answers: [...q.answers],
+      revealed: [...q.revealed],
+      givenUp: [...q.givenUp],
+    }));
+    
+    // Restore game state
+    game.current = state.currentQuestionIndex;
+    game.turn = state.currentPlayerIndex;
+    game.incorrectGuesses = [...state.incorrectGuesses];
+    
+    console.log("[GAME] Restored game from saved state");
     return game;
   }
 

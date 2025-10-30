@@ -3,12 +3,16 @@ import { readFile } from "fs/promises";
 import { URL } from "url";
 import dotenv from "dotenv";
 import { Game } from "./game.js";
-import { saveLastGameConfig, readLastGameConfig } from "./cache.js";
+import { saveLastGameConfig, readLastGameConfig, saveGameState, readGameState, clearGameState } from "./cache.js";
+import { join } from "path";
 
 dotenv.config();
 
 let game: Game | null = null;
 let gameProgress = { progress: 0, message: "", ready: false };
+let currentTopic: string = "";
+let currentModel: string = "";
+let currentCacheFilePath: string = "";
 
 async function parseBody(req: http.IncomingMessage): Promise<any> {
   const chunks: Buffer[] = [];
@@ -42,8 +46,18 @@ const server = http.createServer(async (req, res) => {
       const model: string = body?.model ?? "gpt-4o-mini";
       console.log("[SERVER] Creating game with topic:", topic, "players:", players, "model:", model);
       
+      // Clear any existing saved game state (starting fresh)
+      await clearGameState();
+      
       // Save last game configuration
       await saveLastGameConfig({ topic, players, model });
+      
+      // Store metadata for state saving
+      currentTopic = topic;
+      currentModel = model;
+      const CACHE_DIR = process.env.CACHE_DIR || "cache";
+      const normalizedTopic = topic.toLowerCase().trim().replace(/[^a-zа-яё0-9]+/gi, "_").replace(/^_+|_+$/g, "");
+      currentCacheFilePath = join(CACHE_DIR, `${model}_${normalizedTopic}.json`);
       
       // Reset progress
       gameProgress = { progress: 0, message: "Starting...", ready: false };
@@ -85,6 +99,13 @@ const server = http.createServer(async (req, res) => {
       const body = await parseBody(req);
       const guess: string = body?.guess ?? "";
       const result = await game.handleGuess(guess);
+      
+      // Save game state after each guess
+      if (currentTopic && currentModel && currentCacheFilePath) {
+        const state = game.exportState(currentTopic, currentModel, currentCacheFilePath);
+        await saveGameState(state);
+      }
+      
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify(result));
       return;
@@ -121,6 +142,26 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    if (req.method === "POST" && url.pathname === "/end-game") {
+      // Clear saved game state and reset game
+      await clearGameState();
+      game = null;
+      currentTopic = "";
+      currentModel = "";
+      currentCacheFilePath = "";
+      console.log("[SERVER] Game ended and state cleared");
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ status: "ended" }));
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname === "/has-saved-game") {
+      const savedState = await readGameState();
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ hasSavedGame: savedState !== null }));
+      return;
+    }
+
     res.writeHead(404, { "Content-Type": "text/plain" });
     res.end("Not Found");
   } catch (err) {
@@ -131,6 +172,18 @@ const server = http.createServer(async (req, res) => {
 });
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
-server.listen(PORT, () => {
+server.listen(PORT, async () => {
   console.log(`Guess AI server listening on http://localhost:${PORT}`);
+  
+  // Try to load saved game state on startup
+  const savedState = await readGameState();
+  if (savedState) {
+    console.log("[SERVER] Found saved game state, restoring...");
+    game = Game.restoreFromState(savedState);
+    currentTopic = savedState.topic;
+    currentModel = savedState.model;
+    currentCacheFilePath = savedState.cacheFilePath;
+    gameProgress = { progress: 100, message: "Game restored!", ready: true };
+    console.log("[SERVER] Game restored from saved state");
+  }
 });

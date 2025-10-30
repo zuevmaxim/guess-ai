@@ -576,6 +576,7 @@
 
   <div class="row">
     <button id="giveUpBtn">Сдаться</button>
+    <button id="endGameBtn">Завершить игру</button>
     <button id="continueBtn" style="display:none">Продолжить</button>
   </div>
 </section>
@@ -597,6 +598,7 @@ const playersContainer = el('playersContainer');
 const guessInput = el('guess');
 const guessBtn = el('guessBtn');
 const giveUpBtn = el('giveUpBtn');
+const endGameBtn = el('endGameBtn');
 const continueBtn = el('continueBtn');
 const answersDiv = el('answers');
 const playersList = el('playersList');
@@ -979,6 +981,28 @@ guessBtn.addEventListener('click', () => submitGuess());
 
 giveUpBtn.addEventListener('click', handleGiveUp);
 
+endGameBtn.addEventListener('click', async () => {
+  // Clear game state and return to main screen
+  await fetch('/end-game', { method: 'POST' });
+  
+  // Hide game section, show start section
+  el('game').style.display = 'none';
+  el('start').style.display = '';
+  
+  // Re-enable start form controls
+  startBtn.disabled = false;
+  topic.disabled = false;
+  modelSelect.disabled = false;
+  const playerInputs = playersContainer.querySelectorAll('.playerInput');
+  playerInputs.forEach(input => input.disabled = false);
+  
+  // Reset game UI state
+  guessInput.style.display = '';
+  guessBtn.style.display = '';
+  giveUpBtn.style.display = '';
+  continueBtn.style.display = 'none';
+});
+
 continueBtn.addEventListener('click', async () => {
   // Get current state and show intermission screen
   const state = await fetch('/state').then(r => r.json());
@@ -991,8 +1015,35 @@ guessInput.addEventListener('keydown', (e) => {
 
 nextBtn.addEventListener('click', handleNextButton);
 
+// Check for saved game on page load
+async function checkForSavedGame() {
+  try {
+    const res = await fetch('/has-saved-game');
+    const data = await res.json();
+    
+    if (data.hasSavedGame) {
+      // Always resume saved game automatically
+      // Hide start section, show game section
+      el('start').style.display = 'none';
+      el('game').style.display = '';
+      
+      // Load and display game state
+      await refreshState();
+      console.log('[UI] Resumed saved game');
+    }
+  } catch (error) {
+    console.error('[UI] Error checking for saved game:', error);
+  }
+}
+
 // Load last game configuration on page load
-loadLastConfig();
+checkForSavedGame().then(() => {
+  loadLastConfig();
+  // Focus on topic input if on start screen
+  if (el('start').style.display !== 'none') {
+    topic.focus();
+  }
+});
 
 </script>
 </body>
