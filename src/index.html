@@ -382,12 +382,19 @@
       top: -10px;
       right: -10px;
       display: flex;
-      align-items: center;
+      flex-direction: column;
+      align-items: stretch;
       gap: 12px;
       background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
       padding: 12px 20px;
       border-radius: 12px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    
+    .selectorRow {
+      display: flex;
+      align-items: center;
+      gap: 12px;
     }
     
     .modelSelector label {
@@ -532,11 +539,20 @@
 <h1>Guess AI</h1>
 <section id="start">
   <div class="modelSelector">
-    <label for="modelSelect">Модель:</label>
-    <select id="modelSelect">
-      <option value="gpt-4o-mini">gpt-4o-mini</option>
-      <option value="gpt-5">gpt-5</option>
-    </select>
+    <div class="selectorRow">
+      <label for="languageSelect">Язык:</label>
+      <select id="languageSelect">
+        <option value="ru">Русский</option>
+        <option value="en">English</option>
+      </select>
+    </div>
+    <div class="selectorRow">
+      <label for="modelSelect">Модель:</label>
+      <select id="modelSelect">
+        <option value="gpt-4o-mini">gpt-4o-mini</option>
+        <option value="gpt-5">gpt-5</option>
+      </select>
+    </div>
   </div>
   <div id="startForm" class="row">
     <label class="formLabel">Тема игры</label>
@@ -593,6 +609,7 @@
 const el = (id) => document.getElementById(id);
 const startBtn = el('startBtn');
 const topic = el('topic');
+const languageSelect = el('languageSelect');
 const modelSelect = el('modelSelect');
 const playersContainer = el('playersContainer');
 const guessInput = el('guess');
@@ -620,11 +637,112 @@ let feedbackMessageTime = 0;
 // Track the newly revealed answer to apply animation
 let newlyRevealedAnswer = null;
 
+// Translations for UI
+const translations = {
+  ru: {
+    languageLabel: 'Язык:',
+    modelLabel: 'Модель:',
+    topicLabel: 'Тема игры',
+    topicPlaceholder: 'Тема (например, Фильмы)',
+    playersLabel: 'Участники',
+    playerPlaceholder: 'Игрок',
+    startButton: 'Начать игру',
+    questionLabel: 'Вопрос',
+    answerPlaceholder: 'Ваш ответ',
+    sendButton: 'Отправить',
+    giveUpButton: 'Сдаться',
+    endGameButton: 'Завершить игру',
+    continueButton: 'Продолжить',
+    incorrectAnswersTitle: 'Неправильные ответы:',
+    roundResultsTitle: 'Результаты раунда',
+    gameOverTitle: 'Игра окончена!',
+    nextQuestionButton: 'Следующий вопрос',
+    toMainScreenButton: 'На главный экран',
+    pointsSuffix: 'очков',
+    correctMessage: 'Правильно!',
+    incorrectMessage: 'Не угадали!',
+    giveUpMessage: 'Сдались! Все ответы открыты.',
+    turnMessage: 'Ход:',
+    gameOverMessage: 'Игра окончена! Победитель:',
+    initializingMessage: 'Инициализация...',
+    startingMessage: 'Начинаем...',
+    errorMessage: 'Ошибка:',
+  },
+  en: {
+    languageLabel: 'Language:',
+    modelLabel: 'Model:',
+    topicLabel: 'Game Topic',
+    topicPlaceholder: 'Topic (e.g., Movies)',
+    playersLabel: 'Players',
+    playerPlaceholder: 'Player',
+    startButton: 'Start Game',
+    questionLabel: 'Question',
+    answerPlaceholder: 'Your answer',
+    sendButton: 'Send',
+    giveUpButton: 'Give Up',
+    endGameButton: 'End Game',
+    continueButton: 'Continue',
+    incorrectAnswersTitle: 'Incorrect Answers:',
+    roundResultsTitle: 'Round Results',
+    gameOverTitle: 'Game Over!',
+    nextQuestionButton: 'Next Question',
+    toMainScreenButton: 'To Main Screen',
+    pointsSuffix: 'points',
+    correctMessage: 'Correct!',
+    incorrectMessage: 'Wrong!',
+    giveUpMessage: 'Gave up! All answers revealed.',
+    turnMessage: 'Turn:',
+    gameOverMessage: 'Game Over! Winner:',
+    initializingMessage: 'Initializing...',
+    startingMessage: 'Starting...',
+    errorMessage: 'Error:',
+  }
+};
+
+let currentLanguage = 'ru';
+
+// Update UI based on selected language
+function updateLanguage(lang) {
+  currentLanguage = lang;
+  const t = translations[lang];
+  
+  // Update static labels and buttons
+  document.querySelector('label[for="languageSelect"]').textContent = t.languageLabel;
+  document.querySelector('label[for="modelSelect"]').textContent = t.modelLabel;
+  document.querySelectorAll('.formLabel')[0].textContent = t.topicLabel;
+  document.querySelectorAll('.formLabel')[1].textContent = t.playersLabel;
+  topic.placeholder = t.topicPlaceholder;
+  startBtn.textContent = t.startButton;
+  guessInput.placeholder = t.answerPlaceholder;
+  guessBtn.textContent = t.sendButton;
+  giveUpBtn.textContent = t.giveUpButton;
+  endGameBtn.textContent = t.endGameButton;
+  continueBtn.textContent = t.continueButton;
+  
+  // Update player input placeholders
+  const playerInputs = playersContainer.querySelectorAll('.playerInput');
+  playerInputs.forEach((input, index) => {
+    input.placeholder = `${t.playerPlaceholder} ${index + 1}`;
+  });
+  
+  // Update incorrect answers section
+  const incorrectTitle = incorrectSection.querySelector('h3');
+  if (incorrectTitle) {
+    incorrectTitle.textContent = t.incorrectAnswersTitle;
+  }
+}
+
+// Listen for language changes
+languageSelect.addEventListener('change', () => {
+  updateLanguage(languageSelect.value);
+});
+
 // Dynamic player input fields
 function createPlayerInput(value = '') {
   const input = document.createElement('input');
   input.type = 'text';
-  input.placeholder = `Игрок ${playersContainer.children.length + 1}`;
+  const t = translations[currentLanguage];
+  input.placeholder = `${t.playerPlaceholder} ${playersContainer.children.length + 1}`;
   input.value = value;
   input.className = 'playerInput';
   
@@ -655,6 +773,11 @@ async function loadLastConfig() {
     if (config && config.model) {
       modelSelect.value = config.model;
       console.log('[UI] Prefilled model:', config.model);
+    }
+    if (config && config.language) {
+      languageSelect.value = config.language;
+      updateLanguage(config.language);
+      console.log('[UI] Prefilled language:', config.language);
     }
     if (config && config.players && config.players.length > 0) {
       // Clear existing inputs
@@ -702,8 +825,10 @@ async function pollProgress() {
 
 async function startGame() {
   try {
+    const t = translations[currentLanguage];
     startBtn.disabled = true;
     topic.disabled = true;
+    languageSelect.disabled = true;
     modelSelect.disabled = true;
     
     // Disable all player inputs
@@ -714,16 +839,19 @@ async function startGame() {
     progressDiv.style.display = 'block';
     progressFill.style.width = '0%';
     progressFill.textContent = '0%';
-    progressMessage.textContent = 'Начинаем...';
+    progressMessage.textContent = t.startingMessage;
     
     // Collect players from all non-empty input fields
     const players = Array.from(playerInputs)
       .map(input => input.value.trim())
       .filter(Boolean);
+    const defaultTopic = currentLanguage === 'ru' ? 'Общее' : 'General';
+    const defaultPlayers = currentLanguage === 'ru' ? ['Игрок 1','Игрок 2'] : ['Player 1', 'Player 2'];
     const body = { 
-      topic: topic.value || 'Общее', 
-      players: players.length ? players : ['Игрок 1','Игрок 2'],
-      model: modelSelect.value
+      topic: topic.value || defaultTopic, 
+      players: players.length ? players : defaultPlayers,
+      model: modelSelect.value,
+      language: currentLanguage
     };
     console.log('Starting game with:', body);
     
@@ -746,11 +874,13 @@ async function startGame() {
     // Use setTimeout to ensure the game section is fully rendered before focusing
     setTimeout(() => guessInput.focus(), 0);
   } catch (error) {
+    const t = translations[currentLanguage];
     console.error('Error starting game:', error);
-    progressMessage.textContent = `Ошибка: ${error.message}`;
+    progressMessage.textContent = `${t.errorMessage} ${error.message}`;
     progressMessage.style.color = 'red';
     startBtn.disabled = false;
     topic.disabled = false;
+    languageSelect.disabled = false;
     modelSelect.disabled = false;
     
     // Re-enable all player inputs
@@ -760,17 +890,18 @@ async function startGame() {
 }
 
 function showIntermission(state) {
+  const t = translations[currentLanguage];
   // Hide game section, show intermission section
   el('game').style.display = 'none';
   intermissionSection.style.display = '';
   
   // Update title and button text based on game state
   if (state.finished) {
-    intermissionTitle.textContent = 'Игра окончена!';
-    nextBtn.textContent = 'На главный экран';
+    intermissionTitle.textContent = t.gameOverTitle;
+    nextBtn.textContent = t.toMainScreenButton;
   } else {
-    intermissionTitle.textContent = 'Результаты раунда';
-    nextBtn.textContent = 'Следующий вопрос';
+    intermissionTitle.textContent = t.roundResultsTitle;
+    nextBtn.textContent = t.nextQuestionButton;
   }
   
   // Sort players by score (descending)
@@ -794,7 +925,7 @@ function showIntermission(state) {
     
     const playerScore = document.createElement('span');
     playerScore.className = 'playerScore';
-    playerScore.textContent = `${player.score} очков`;
+    playerScore.textContent = `${player.score} ${t.pointsSuffix}`;
     
     scoreItem.appendChild(playerName);
     scoreItem.appendChild(playerScore);
@@ -803,6 +934,7 @@ function showIntermission(state) {
 }
 
 async function refreshState() {
+  const t = translations[currentLanguage];
   const res = await fetch('/state');
   const state = await res.json();
   if (!state || !state.question) return;
@@ -842,14 +974,14 @@ async function refreshState() {
 
   if (state.finished) {
     const winner = [...state.players].sort((a,b)=>b.score-a.score)[0];
-    logDiv.textContent = `Игра окончена! Победитель: ${winner?.name} (${winner?.score} очков)`;
+    logDiv.textContent = `${t.gameOverMessage} ${winner?.name} (${winner?.score} ${t.pointsSuffix})`;
     guessInput.disabled = true;
     guessBtn.disabled = true;
   } else {
     // Only update logDiv if at least 2 seconds have passed since feedback message was shown
     const now = Date.now();
     if (now - feedbackMessageTime >= 2000) {
-      logDiv.textContent = `Ход: ${state.currentPlayer}`;
+      logDiv.textContent = `${t.turnMessage} ${state.currentPlayer}`;
     }
   }
 
@@ -869,6 +1001,7 @@ async function refreshState() {
 }
 
 async function submitGuess(v) {
+  const t = translations[currentLanguage];
   const body = { guess: v ?? guessInput.value };
   guessInput.value = '';
   const res = await fetch('/guess', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
@@ -888,9 +1021,9 @@ async function submitGuess(v) {
   
   // Show feedback message
   if (result.correct) {
-    logDiv.textContent = `Правильно! +${result.points} за "${result.answer}"`;
+    logDiv.textContent = `${t.correctMessage} +${result.points} ${currentLanguage === 'ru' ? 'за' : 'for'} "${result.answer}"`;
   } else {
-    logDiv.textContent = 'Не угадали!';
+    logDiv.textContent = t.incorrectMessage;
   }
   // Record when feedback message was shown
   feedbackMessageTime = Date.now();
@@ -917,6 +1050,7 @@ async function submitGuess(v) {
 }
 
 async function handleGiveUp() {
+  const t = translations[currentLanguage];
   // Send give up request
   const res = await fetch('/guess', { 
     method: 'POST', 
@@ -929,7 +1063,7 @@ async function handleGiveUp() {
   await refreshState();
   
   // Show feedback message
-  logDiv.textContent = 'Сдались! Все ответы открыты.';
+  logDiv.textContent = t.giveUpMessage;
   feedbackMessageTime = Date.now();
   
   // Hide input controls and give up button, show continue button
@@ -952,6 +1086,7 @@ async function handleNextButton() {
     // Re-enable start form controls
     startBtn.disabled = false;
     topic.disabled = false;
+    languageSelect.disabled = false;
     modelSelect.disabled = false;
     const playerInputs = playersContainer.querySelectorAll('.playerInput');
     playerInputs.forEach(input => input.disabled = false);
@@ -996,6 +1131,7 @@ endGameBtn.addEventListener('click', async () => {
   // Re-enable start form controls
   startBtn.disabled = false;
   topic.disabled = false;
+  languageSelect.disabled = false;
   modelSelect.disabled = false;
   const playerInputs = playersContainer.querySelectorAll('.playerInput');
   playerInputs.forEach(input => input.disabled = false);

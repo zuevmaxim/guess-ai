@@ -14,11 +14,13 @@ export interface LastGameConfig {
   topic: string;
   players: string[];
   model: string;
+  language: string;
 }
 
 export interface GameState {
   topic: string;
   model: string;
+  language: string;
   cacheFilePath: string; // Path to the cached questions file
   players: Array<{ name: string; score: number }>;
   currentQuestionIndex: number;
@@ -41,49 +43,49 @@ function normalizeTopic(topic: string): string {
     .replace(/^_+|_+$/g, "");
 }
 
-// Get cache file path for a topic and model
-function getCacheFilePath(topic: string, model: string = "gpt-4o-mini"): string {
+// Get cache file path for a topic, model, and language
+function getCacheFilePath(topic: string, model: string = "gpt-4o-mini", language: string = "ru"): string {
   const normalized = normalizeTopic(topic);
-  return join(CACHE_DIR, `${model}_${normalized}.json`);
+  return join(CACHE_DIR, `${model}_${language}_${normalized}.json`);
 }
 
-// Check if cache exists for a topic and model
-export function cacheExists(topic: string, model: string = "gpt-4o-mini"): boolean {
-  const filePath = getCacheFilePath(topic, model);
+// Check if cache exists for a topic, model, and language
+export function cacheExists(topic: string, model: string = "gpt-4o-mini", language: string = "ru"): boolean {
+  const filePath = getCacheFilePath(topic, model, language);
   return existsSync(filePath);
 }
 
-// Read cached data for a topic and model
-export async function readCache(topic: string, model: string = "gpt-4o-mini"): Promise<CachedGameData | null> {
+// Read cached data for a topic, model, and language
+export async function readCache(topic: string, model: string = "gpt-4o-mini", language: string = "ru"): Promise<CachedGameData | null> {
   try {
-    const filePath = getCacheFilePath(topic, model);
+    const filePath = getCacheFilePath(topic, model, language);
     if (!existsSync(filePath)) {
       return null;
     }
     const content = await readFile(filePath, "utf-8");
     const data = JSON.parse(content) as CachedGameData;
-    console.log(`[CACHE] Loaded cache for topic: ${topic}, model: ${model}`);
+    console.log(`[CACHE] Loaded cache for topic: ${topic}, model: ${model}, language: ${language}`);
     return data;
   } catch (error) {
-    console.error(`[CACHE] Error reading cache for topic ${topic}, model ${model}:`, error);
+    console.error(`[CACHE] Error reading cache for topic ${topic}, model ${model}, language ${language}:`, error);
     return null;
   }
 }
 
-// Write cache data for a topic and model
-export async function writeCache(data: CachedGameData, model: string = "gpt-4o-mini"): Promise<void> {
+// Write cache data for a topic, model, and language
+export async function writeCache(data: CachedGameData, model: string = "gpt-4o-mini", language: string = "ru"): Promise<void> {
   try {
     // Ensure cache directory exists
     if (!existsSync(CACHE_DIR)) {
       await mkdir(CACHE_DIR, { recursive: true });
     }
     
-    const filePath = getCacheFilePath(data.topic, model);
+    const filePath = getCacheFilePath(data.topic, model, language);
     const content = JSON.stringify(data, null, 2);
     await writeFile(filePath, content, "utf-8");
-    console.log(`[CACHE] Saved cache for topic: ${data.topic}, model: ${model} to ${filePath}`);
+    console.log(`[CACHE] Saved cache for topic: ${data.topic}, model: ${model}, language: ${language} to ${filePath}`);
   } catch (error) {
-    console.error(`[CACHE] Error writing cache for topic ${data.topic}, model ${model}:`, error);
+    console.error(`[CACHE] Error writing cache for topic ${data.topic}, model ${model}, language ${language}:`, error);
   }
 }
 

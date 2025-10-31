@@ -12,6 +12,7 @@ let game: Game | null = null;
 let gameProgress = { progress: 0, message: "", ready: false };
 let currentTopic: string = "";
 let currentModel: string = "";
+let currentLanguage: string = "";
 let currentCacheFilePath: string = "";
 
 async function parseBody(req: http.IncomingMessage): Promise<any> {
@@ -44,20 +45,22 @@ const server = http.createServer(async (req, res) => {
       const topic: string = body?.topic ?? "General";
       const players: string[] = Array.isArray(body?.players) ? body.players.filter((s: any) => typeof s === "string" && s.trim()) : ["Player 1", "Player 2"];
       const model: string = body?.model ?? "gpt-4o-mini";
-      console.log("[SERVER] Creating game with topic:", topic, "players:", players, "model:", model);
+      const language: string = body?.language ?? "ru";
+      console.log("[SERVER] Creating game with topic:", topic, "players:", players, "model:", model, "language:", language);
       
       // Clear any existing saved game state (starting fresh)
       await clearGameState();
       
       // Save last game configuration
-      await saveLastGameConfig({ topic, players, model });
+      await saveLastGameConfig({ topic, players, model, language });
       
       // Store metadata for state saving
       currentTopic = topic;
       currentModel = model;
+      currentLanguage = language;
       const CACHE_DIR = process.env.CACHE_DIR || "cache";
       const normalizedTopic = topic.toLowerCase().trim().replace(/[^a-zа-яё0-9]+/gi, "_").replace(/^_+|_+$/g, "");
-      currentCacheFilePath = join(CACHE_DIR, `${model}_${normalizedTopic}.json`);
+      currentCacheFilePath = join(CACHE_DIR, `${model}_${language}_${normalizedTopic}.json`);
       
       // Reset progress
       gameProgress = { progress: 0, message: "Starting...", ready: false };
@@ -69,7 +72,7 @@ const server = http.createServer(async (req, res) => {
       });
       
       // Start game creation in background
-      Game.create(topic, players, model).then((g) => {
+      Game.create(topic, players, model, language).then((g) => {
         game = g;
         gameProgress = { progress: 100, message: "Game ready!", ready: true };
         console.log("[SERVER] Game created successfully");
@@ -101,8 +104,8 @@ const server = http.createServer(async (req, res) => {
       const result = await game.handleGuess(guess);
       
       // Save game state after each guess
-      if (currentTopic && currentModel && currentCacheFilePath) {
-        const state = game.exportState(currentTopic, currentModel, currentCacheFilePath);
+      if (currentTopic && currentModel && currentLanguage && currentCacheFilePath) {
+        const state = game.exportState(currentTopic, currentModel, currentLanguage, currentCacheFilePath);
         await saveGameState(state);
       }
       
@@ -148,6 +151,7 @@ const server = http.createServer(async (req, res) => {
       game = null;
       currentTopic = "";
       currentModel = "";
+      currentLanguage = "";
       currentCacheFilePath = "";
       console.log("[SERVER] Game ended and state cleared");
       res.writeHead(200, { "Content-Type": "application/json" });
@@ -182,6 +186,7 @@ server.listen(PORT, async () => {
     game = Game.restoreFromState(savedState);
     currentTopic = savedState.topic;
     currentModel = savedState.model;
+    currentLanguage = savedState.language;
     currentCacheFilePath = savedState.cacheFilePath;
     gameProgress = { progress: 100, message: "Game restored!", ready: true };
     console.log("[SERVER] Game restored from saved state");

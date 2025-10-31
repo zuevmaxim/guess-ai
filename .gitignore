@@ -27,3 +27,4 @@ yarn-error.log*
 # cache directory
 /cache
 /cache-test/last_game_config.json
+/cache-test/current_game_state.json
