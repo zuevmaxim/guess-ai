@@ -109,9 +109,10 @@ function cosineSim(a: number[], b: number[]): number {
 }
 
 export async function compareGuess(guess: string, answers: string[]): Promise<{ matchIndex: number | null; similarity: number }> {
-  // Convert to lowercase before building embeddings
-  const guessLower = guess.toLowerCase();
-  const answersLower = answers.map(a => a.toLowerCase());
+  // Convert to lowercase and normalize ё to е before building embeddings
+  const normalize = (text: string) => text.toLowerCase().replace(/ё/g, 'е');
+  const guessLower = normalize(guess);
+  const answersLower = answers.map(a => normalize(a));
   
   // Compute embeddings for guess and answers
   const inputs = [guessLower, ...answersLower];
@@ -130,7 +131,7 @@ export async function compareGuess(guess: string, answers: string[]): Promise<{ 
       bestIdx = i;
     }
   }
-  // Threshold similarity > 0.8 ⇒ match
-  const matchIndex = best > 0.8 ? bestIdx : null;
+  // Threshold similarity > 0.7 ⇒ match
+  const matchIndex = best > 0.7 ? bestIdx : null;
   return { matchIndex, similarity: best };
 }
