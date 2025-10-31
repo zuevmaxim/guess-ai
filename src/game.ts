@@ -128,6 +128,9 @@ export class Game {
       game.players[i].score = p.score;
     });
     
+    // Sort players by score to maintain correct order
+    game.sortPlayersByScore();
+    
     // Restore questions
     game.questions = state.questions.map(q => ({
       text: q.text,
@@ -159,10 +162,18 @@ export class Game {
     this.turn = (this.turn + 1) % this.players.length;
   }
 
+  private sortPlayersByScore() {
+    // Sort players by score in ascending order (lowest score first)
+    this.players.sort((a, b) => a.score - b.score);
+  }
+
   nextQuestion() {
     if (this.current < this.questions.length - 1) {
       this.current += 1;
       this.incorrectGuesses = []; // Reset incorrect guesses for new question
+      
+      // Sort players by score before starting the new question
+      this.sortPlayersByScore();
       
       // Start with a random player for the new question
       // In tests, use deterministic behavior (always start with player 0)
