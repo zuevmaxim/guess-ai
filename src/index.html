@@ -743,7 +743,8 @@ async function startGame() {
     el('start').style.display = 'none';
     el('game').style.display = '';
     await refreshState();
-    guessInput.focus();
+    // Use setTimeout to ensure the game section is fully rendered before focusing
+    setTimeout(() => guessInput.focus(), 0);
   } catch (error) {
     console.error('Error starting game:', error);
     progressMessage.textContent = `Ошибка: ${error.message}`;
@@ -974,7 +975,7 @@ async function handleNextButton() {
     
     // Refresh game state to show next question
     await refreshState();
-    guessInput.focus();
+    setTimeout(() => guessInput.focus(), 0);
   }
 }
 
@@ -1032,7 +1033,7 @@ async function checkForSavedGame() {
       
       // Load and display game state
       await refreshState();
-      guessInput.focus();
+      setTimeout(() => guessInput.focus(), 0);
       console.log('[UI] Resumed saved game');
     }
   } catch (error) {
