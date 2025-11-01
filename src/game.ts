@@ -176,13 +176,9 @@ export class Game {
       // Sort players by score before starting the new question
       this.sortPlayersByScore();
       
-      // Start with a random player for the new question
-      // In tests, use deterministic behavior (always start with player 0)
-      if (process.env.CACHE_DIR === 'cache-test') {
+      // Always start with player 0 (the one with lowest score after sorting)
+      // No randomness for questions 2-10
         this.turn = 0;
-      } else {
-        this.turn = Math.floor(Math.random() * this.players.length);
-      }
     }
   }
 
@@ -217,7 +213,6 @@ export class Game {
     // Special: allow client to request next question explicitly
     if (guess === "__NEXT__") {
       this.nextQuestion();
-      this.advanceTurn();
       return { correct: false };
     }
 
