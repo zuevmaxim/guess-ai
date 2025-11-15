@@ -138,6 +138,26 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    if (req.method === "POST" && url.pathname === "/next-turn") {
+      if (!game) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "No active game" }));
+        return;
+      }
+      // Advance to next player without making a guess
+      game.nextTurn();
+      
+      // Save game state
+      if (currentTopic && currentModel && currentLanguage && currentCacheFilePath) {
+        const state = game.exportState(currentTopic, currentModel, currentLanguage, currentCacheFilePath);
+        await saveGameState(state);
+      }
+      
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ status: "turn advanced" }));
+      return;
+    }
+
     if (req.method === "GET" && url.pathname === "/last-config") {
       const lastConfig = await readLastGameConfig();
       res.writeHead(200, { "Content-Type": "application/json" });

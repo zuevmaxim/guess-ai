@@ -163,6 +163,10 @@ export class Game {
     this.turn = (this.turn + 1) % this.players.length;
   }
 
+  nextTurn() {
+    this.advanceTurn();
+  }
+
   private sortPlayersByScore() {
     // Sort players by score in ascending order (lowest score first)
     this.players.sort((a, b) => a.score - b.score);
