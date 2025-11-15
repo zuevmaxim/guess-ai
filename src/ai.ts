@@ -176,6 +176,6 @@ export async function compareGuess(guess: string, answers: string[]): Promise<{ 
     }
   }
   // Threshold similarity > 0.7 ⇒ match
-  const matchIndex = best > 0.7 ? bestIdx : null;
+  const matchIndex = best > 0.6 ? bestIdx : null;
   return { matchIndex, similarity: best };
 }
